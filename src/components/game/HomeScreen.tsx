@@ -13,7 +13,6 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   const [tapCount, setTapCount] = useState(0);
-  const [miningProgress, setMiningProgress] = useState(0);
   const { toast } = useToast();
 
   const { stats } = gameState;
@@ -31,10 +30,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
     const newTapCount = tapCount + 1;
     setTapCount(newTapCount);
 
-    // Update stats
-    const newCoins = stats.coins + stats.mining_rate;
-    const newEnergy = Math.max(0, stats.energy - 1);
+    // Calculate rewards
+    const coinsGained = stats.mining_rate;
     const xpGain = Math.floor(stats.mining_rate * 0.1);
+
+    const newCoins = stats.coins + coinsGained;
+    const newEnergy = Math.max(0, stats.energy - 1);
     const newXp = stats.xp + xpGain;
 
     try {
@@ -55,19 +56,63 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
         energy: newEnergy,
         xp: newXp
       };
+
+      // Update mission progress for taps
+      await updateMissionProgress('taps', 1);
+      await updateMissionProgress('coins_earned', coinsGained);
+
+      // Update achievements
+      const currentLevel = calculateLevel(newXp);
+      await updateAchievementProgress('Primer Nivel', currentLevel);
+      await updateAchievementProgress('Millonario', newCoins);
+
     } catch (error) {
       console.error('Error updating tap:', error);
     }
   };
 
-  const calculateLevel = (xp: number) => {
-    return Math.floor(xp / 100000) + 1;
+  const updateMissionProgress = async (missionType: string, value: number) => {
+    const mission = gameState.dailyMissions.find((m: any) => m.mission_type === missionType);
+    if (!mission || mission.is_completed) return;
+
+    const newValue = Math.min(mission.target_value, mission.current_value + value);
+    const isCompleted = newValue >= mission.target_value;
+
+    try {
+      await supabase
+        .from('daily_missions')
+        .update({
+          current_value: newValue,
+          is_completed: isCompleted
+        })
+        .eq('id', mission.id);
+    } catch (error) {
+      console.error('Error updating mission progress:', error);
+    }
   };
 
-  const calculateXpForNextLevel = (xp: number) => {
-    const currentLevel = calculateLevel(xp);
-    const xpForNextLevel = currentLevel * 100000;
-    return xpForNextLevel - xp;
+  const updateAchievementProgress = async (achievementName: string, value: number) => {
+    const achievement = gameState.achievements.find((a: any) => a.achievement_name === achievementName);
+    if (!achievement || achievement.is_completed) return;
+
+    const newValue = Math.min(achievement.target_value, value);
+    const isCompleted = newValue >= achievement.target_value;
+
+    try {
+      await supabase
+        .from('achievements')
+        .update({
+          current_value: newValue,
+          is_completed: isCompleted
+        })
+        .eq('id', achievement.id);
+    } catch (error) {
+      console.error('Error updating achievement progress:', error);
+    }
+  };
+
+  const calculateLevel = (xp: number) => {
+    return Math.floor(xp / 100000) + 1;
   };
 
   const getEnergyRegenRate = () => {
@@ -186,9 +231,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
         <div className="bg-gray-800/50 rounded-lg p-3 border border-pink-500/20 text-center">
           <div className="flex items-center justify-center gap-2 mb-1">
             <Star className="h-4 w-4 text-pink-400" />
-            <span className="text-xs text-pink-400">Estrellas</span>
+            <span className="text-xs text-pink-400">Giros</span>
           </div>
-          <div className="text-sm font-bold text-white">{stats.stars}</div>
+          <div className="text-sm font-bold text-white">{stats.spins || 0}</div>
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Timer, Target } from 'lucide-react';
+import { CheckCircle, Clock, Target, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,57 +13,43 @@ interface DailyMissionsProps {
 
 const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
   const { toast } = useToast();
+  const [claiming, setClaiming] = useState<string | null>(null);
 
-  const claimMission = async (mission: any) => {
-    if (!mission.is_completed || mission.is_claimed) return;
+  const missions = gameState.dailyMissions || [];
 
+  const handleClaimMission = async (mission: any) => {
+    if (!mission.is_completed || mission.is_claimed || claiming) return;
+    
+    setClaiming(mission.id);
+    
     try {
-      // Set 12-hour timer
-      const unlockTime = new Date();
-      unlockTime.setHours(unlockTime.getHours() + 12);
-
-      // Update mission
+      // Mark mission as claimed and set 12-hour cooldown
+      const cooldownTime = new Date();
+      cooldownTime.setHours(cooldownTime.getHours() + 12);
+      
       await supabase
         .from('daily_missions')
-        .update({
+        .update({ 
           is_claimed: true,
-          unlock_timer: unlockTime.toISOString(),
-          updated_at: new Date().toISOString()
+          unlock_timer: cooldownTime.toISOString()
         })
         .eq('id', mission.id);
 
-      // Update user stats
-      const updates: any = {
-        updated_at: new Date().toISOString()
-      };
-
-      switch (mission.reward_type) {
-        case 'coins':
-          updates.coins = gameState.stats.coins + mission.reward_amount;
-          break;
-        case 'stars':
-          updates.stars = gameState.stats.stars + mission.reward_amount;
-          break;
-        case 'spins':
-          updates.spins = gameState.stats.spins + mission.reward_amount;
-          break;
-      }
-
+      // Add spins to player
       await supabase
         .from('stats')
-        .update(updates)
+        .update({ 
+          spins: gameState.stats.spins + mission.reward_amount 
+        })
         .eq('user_id', gameState.user.id);
 
       toast({
         title: "¡Misión completada!",
-        description: `Has recibido ${mission.reward_amount} ${mission.reward_type}`,
+        description: `+${mission.reward_amount} giros de ruleta`,
       });
 
-      // Update local state
-      mission.is_claimed = true;
-      mission.unlock_timer = unlockTime.toISOString();
-      Object.assign(gameState.stats, updates);
-
+      // Refresh game state
+      window.location.reload();
     } catch (error) {
       console.error('Error claiming mission:', error);
       toast({
@@ -71,76 +57,120 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
         description: "No se pudo reclamar la misión",
         variant: "destructive"
       });
+    } finally {
+      setClaiming(null);
     }
   };
 
-  const isMissionOnTimer = (mission: any) => {
-    if (!mission.unlock_timer) return false;
-    return new Date() < new Date(mission.unlock_timer);
+  const updateMissionProgress = async (missionType: string, value: number) => {
+    const mission = missions.find((m: any) => m.mission_type === missionType);
+    if (!mission || mission.is_completed) return;
+
+    const newValue = Math.min(mission.target_value, mission.current_value + value);
+    const isCompleted = newValue >= mission.target_value;
+
+    try {
+      await supabase
+        .from('daily_missions')
+        .update({
+          current_value: newValue,
+          is_completed: isCompleted
+        })
+        .eq('id', mission.id);
+    } catch (error) {
+      console.error('Error updating mission progress:', error);
+    }
   };
 
-  const getMissionProgress = (mission: any) => {
-    return Math.min(100, (mission.current_value / mission.target_value) * 100);
+  const isOnCooldown = (mission: any) => {
+    if (!mission.unlock_timer) return false;
+    return new Date(mission.unlock_timer) > new Date();
+  };
+
+  const getCooldownTime = (mission: any) => {
+    if (!mission.unlock_timer) return '';
+    const now = new Date();
+    const unlock = new Date(mission.unlock_timer);
+    const diff = unlock.getTime() - now.getTime();
+    
+    if (diff <= 0) return '';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${hours}h ${minutes}m`;
+  };
+
+  const getMissionIcon = (type: string) => {
+    switch (type) {
+      case 'taps': return '👆';
+      case 'upgrades': return '⬆️';
+      case 'coins_earned': return '💰';
+      case 'level_reach': return '🏆';
+      default: return '🎯';
+    }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-white mb-2">Misiones Diarias</h2>
-        <p className="text-gray-400 text-sm">Completa misiones para ganar recompensas</p>
-      </div>
-
-      <div className="space-y-3">
-        {gameState.dailyMissions.map((mission: any, index: number) => {
-          const progress = getMissionProgress(mission);
-          const onTimer = isMissionOnTimer(mission);
+    <div className="p-4">
+      <h2 className="text-xl font-bold text-white mb-4 text-center">Misiones Diarias</h2>
+      
+      <div className="space-y-4">
+        {missions.map((mission: any) => {
+          const progress = Math.min(100, (mission.current_value / mission.target_value) * 100);
+          const onCooldown = isOnCooldown(mission);
+          const cooldownTime = getCooldownTime(mission);
           
           return (
-            <Card key={index} className="bg-gray-800/50 border-gray-700">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-base flex items-center gap-2">
-                  <Target className="h-5 w-5 text-cyan-400" />
-                  {mission.mission_name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Progreso</span>
-                    <span className="text-white">{mission.current_value}/{mission.target_value}</span>
-                  </div>
-                  <Progress value={progress} className="h-2" />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-purple-400">
-                    +{mission.reward_amount} {mission.reward_type}
+            <Card key={mission.id} className={`${
+              mission.is_completed && !mission.is_claimed ? 'bg-green-900/20 border-green-500/50' :
+              onCooldown ? 'bg-gray-900/30 border-gray-600/50' :
+              'bg-gray-800/50 border-cyan-500/20'
+            }`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{getMissionIcon(mission.mission_type)}</div>
+                    <div>
+                      <h3 className="text-white font-bold text-sm">{mission.mission_name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <Target className="h-3 w-3" />
+                        <span>{mission.current_value}/{mission.target_value}</span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div>
-                    {mission.is_claimed && onTimer ? (
-                      <div className="flex items-center gap-2 text-orange-400 text-sm">
-                        <Timer className="h-4 w-4" />
-                        <span>12h restantes</span>
-                      </div>
-                    ) : mission.is_claimed ? (
-                      <div className="flex items-center gap-2 text-green-400 text-sm">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Completado</span>
-                      </div>
-                    ) : mission.is_completed ? (
-                      <Button 
-                        size="sm"
-                        onClick={() => claimMission(mission)}
-                        className="bg-green-600 hover:bg-green-500"
-                      >
-                        Reclamar
-                      </Button>
-                    ) : (
-                      <span className="text-gray-500 text-sm">En progreso</span>
-                    )}
+                  <div className="flex items-center gap-2 text-purple-400">
+                    <Zap className="h-4 w-4" />
+                    <span className="text-sm font-bold">+{mission.reward_amount}</span>
                   </div>
                 </div>
+                
+                <Progress value={progress} className="h-2 mb-3" />
+                
+                {onCooldown ? (
+                  <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                    <Clock className="h-4 w-4" />
+                    <span>Disponible en {cooldownTime}</span>
+                  </div>
+                ) : mission.is_completed && !mission.is_claimed ? (
+                  <Button
+                    onClick={() => handleClaimMission(mission)}
+                    disabled={claiming === mission.id}
+                    className="w-full bg-green-600 hover:bg-green-500"
+                  >
+                    {claiming === mission.id ? 'Reclamando...' : '¡Reclamar!'}
+                  </Button>
+                ) : mission.is_claimed || mission.is_completed ? (
+                  <div className="flex items-center justify-center gap-2 text-green-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm">Completada</span>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 text-sm">
+                    En progreso...
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

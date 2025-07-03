@@ -177,32 +177,38 @@ export type Database = {
       daily_rewards: {
         Row: {
           created_at: string
+          current_day: number | null
           day: number
           id: string
           is_claimed: boolean | null
           last_claim_date: string | null
           reward_amount: number | null
           reward_type: string | null
+          streak_count: number | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          current_day?: number | null
           day: number
           id?: string
           is_claimed?: boolean | null
           last_claim_date?: string | null
           reward_amount?: number | null
           reward_type?: string | null
+          streak_count?: number | null
           user_id: string
         }
         Update: {
           created_at?: string
+          current_day?: number | null
           day?: number
           id?: string
           is_claimed?: boolean | null
           last_claim_date?: string | null
           reward_amount?: number | null
           reward_type?: string | null
+          streak_count?: number | null
           user_id?: string
         }
         Relationships: [
@@ -224,8 +230,10 @@ export type Database = {
           is_unlocked: boolean | null
           position: number
           price_ton: number | null
+          purchase_date: string | null
           reward_amount: number | null
           reward_type: string | null
+          unlock_requirements: Json | null
           updated_at: string
           user_id: string
         }
@@ -237,8 +245,10 @@ export type Database = {
           is_unlocked?: boolean | null
           position: number
           price_ton?: number | null
+          purchase_date?: string | null
           reward_amount?: number | null
           reward_type?: string | null
+          unlock_requirements?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -250,8 +260,10 @@ export type Database = {
           is_unlocked?: boolean | null
           position?: number
           price_ton?: number | null
+          purchase_date?: string | null
           reward_amount?: number | null
           reward_type?: string | null
+          unlock_requirements?: Json | null
           updated_at?: string
           user_id?: string
         }

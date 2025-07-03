@@ -57,8 +57,8 @@ export const useGameState = () => {
       ] = await Promise.all([
         supabase.from('stats').select('*').eq('user_id', user.id).single(),
         supabase.from('cards').select('*').eq('user_id', user.id),
-        supabase.from('floating_cards').select('*').eq('user_id', user.id),
-        supabase.from('daily_rewards').select('*').eq('user_id', user.id),
+        supabase.from('floating_cards').select('*').eq('user_id', user.id).order('card_name, position'),
+        supabase.from('daily_rewards').select('*').eq('user_id', user.id).order('day'),
         supabase.from('daily_missions').select('*').eq('user_id', user.id),
         supabase.from('achievements').select('*').eq('user_id', user.id),
         supabase.from('shop_items').select('*').eq('user_id', user.id),
@@ -108,6 +108,66 @@ export const useGameState = () => {
     }
   };
 
+  const updateMissionProgress = async (missionType: string, value: number) => {
+    const mission = gameState.dailyMissions.find((m: any) => m.mission_type === missionType);
+    if (!mission || mission.is_completed) return;
+
+    const newValue = Math.min(mission.target_value, mission.current_value + value);
+    const isCompleted = newValue >= mission.target_value;
+
+    try {
+      await supabase
+        .from('daily_missions')
+        .update({
+          current_value: newValue,
+          is_completed: isCompleted
+        })
+        .eq('id', mission.id);
+
+      // Update local state
+      setGameState(prev => ({
+        ...prev,
+        dailyMissions: prev.dailyMissions.map((m: any) => 
+          m.id === mission.id 
+            ? { ...m, current_value: newValue, is_completed: isCompleted }
+            : m
+        )
+      }));
+    } catch (error) {
+      console.error('Error updating mission progress:', error);
+    }
+  };
+
+  const updateAchievementProgress = async (achievementName: string, value: number) => {
+    const achievement = gameState.achievements.find((a: any) => a.achievement_name === achievementName);
+    if (!achievement || achievement.is_completed) return;
+
+    const newValue = Math.min(achievement.target_value, value);
+    const isCompleted = newValue >= achievement.target_value;
+
+    try {
+      await supabase
+        .from('achievements')
+        .update({
+          current_value: newValue,
+          is_completed: isCompleted
+        })
+        .eq('id', achievement.id);
+
+      // Update local state
+      setGameState(prev => ({
+        ...prev,
+        achievements: prev.achievements.map((a: any) => 
+          a.id === achievement.id 
+            ? { ...a, current_value: newValue, is_completed: isCompleted }
+            : a
+        )
+      }));
+    } catch (error) {
+      console.error('Error updating achievement progress:', error);
+    }
+  };
+
   useEffect(() => {
     loadGameData();
   }, []);
@@ -116,6 +176,8 @@ export const useGameState = () => {
     gameState,
     loading,
     updateStats,
+    updateMissionProgress,
+    updateAchievementProgress,
     refreshGameState: loadGameData
   };
 };

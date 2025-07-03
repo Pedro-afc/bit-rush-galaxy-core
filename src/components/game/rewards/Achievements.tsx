@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle, Timer, Trophy } from 'lucide-react';
+import { CheckCircle, Clock, Trophy, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,60 +13,43 @@ interface AchievementsProps {
 
 const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
   const { toast } = useToast();
+  const [claiming, setClaiming] = useState<string | null>(null);
 
-  const claimAchievement = async (achievement: any) => {
-    if (!achievement.is_completed || achievement.is_claimed) return;
+  const achievements = gameState.achievements || [];
 
+  const handleClaimAchievement = async (achievement: any) => {
+    if (!achievement.is_completed || achievement.is_claimed || claiming) return;
+    
+    setClaiming(achievement.id);
+    
     try {
-      // Set 12-hour timer
-      const unlockTime = new Date();
-      unlockTime.setHours(unlockTime.getHours() + 12);
-
-      // Update achievement
+      // Mark achievement as claimed and set 12-hour cooldown
+      const cooldownTime = new Date();
+      cooldownTime.setHours(cooldownTime.getHours() + 12);
+      
       await supabase
         .from('achievements')
-        .update({
+        .update({ 
           is_claimed: true,
-          unlock_timer: unlockTime.toISOString(),
-          updated_at: new Date().toISOString()
+          unlock_timer: cooldownTime.toISOString()
         })
         .eq('id', achievement.id);
 
-      // Update user stats
-      const updates: any = {
-        updated_at: new Date().toISOString()
-      };
-
-      switch (achievement.reward_type) {
-        case 'coins':
-          updates.coins = gameState.stats.coins + achievement.reward_amount;
-          break;
-        case 'stars':
-          updates.stars = gameState.stats.stars + achievement.reward_amount;
-          break;
-        case 'spins':
-          updates.spins = gameState.stats.spins + achievement.reward_amount;
-          break;
-        case 'ton':
-          updates.ton_balance = gameState.stats.ton_balance + achievement.reward_amount;
-          break;
-      }
-
+      // Add spins to player
       await supabase
         .from('stats')
-        .update(updates)
+        .update({ 
+          spins: gameState.stats.spins + achievement.reward_amount 
+        })
         .eq('user_id', gameState.user.id);
 
       toast({
         title: "¡Logro desbloqueado!",
-        description: `Has recibido ${achievement.reward_amount} ${achievement.reward_type}`,
+        description: `+${achievement.reward_amount} giros de ruleta`,
       });
 
-      // Update local state
-      achievement.is_claimed = true;
-      achievement.unlock_timer = unlockTime.toISOString();
-      Object.assign(gameState.stats, updates);
-
+      // Refresh game state
+      window.location.reload();
     } catch (error) {
       console.error('Error claiming achievement:', error);
       toast({
@@ -74,80 +57,113 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
         description: "No se pudo reclamar el logro",
         variant: "destructive"
       });
+    } finally {
+      setClaiming(null);
     }
   };
 
-  const isAchievementOnTimer = (achievement: any) => {
+  const isOnCooldown = (achievement: any) => {
     if (!achievement.unlock_timer) return false;
-    return new Date() < new Date(achievement.unlock_timer);
+    return new Date(achievement.unlock_timer) > new Date();
   };
 
-  const getAchievementProgress = (achievement: any) => {
-    return Math.min(100, (achievement.current_value / achievement.target_value) * 100);
+  const getCooldownTime = (achievement: any) => {
+    if (!achievement.unlock_timer) return '';
+    const now = new Date();
+    const unlock = new Date(achievement.unlock_timer);
+    const diff = unlock.getTime() - now.getTime();
+    
+    if (diff <= 0) return '';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${hours}h ${minutes}m`;
+  };
+
+  const getAchievementIcon = (name: string) => {
+    if (name.includes('Nivel')) return '🏆';
+    if (name.includes('Coleccionista')) return '🎴';
+    if (name.includes('Millonario')) return '💰';
+    if (name.includes('Minero')) return '⛏️';
+    return '🏅';
+  };
+
+  const getAchievementRarity = (reward: number) => {
+    if (reward >= 10) return { color: 'border-purple-500/50 bg-purple-900/20', text: 'text-purple-400', label: 'Legendario' };
+    if (reward >= 5) return { color: 'border-yellow-500/50 bg-yellow-900/20', text: 'text-yellow-400', label: 'Épico' };
+    if (reward >= 3) return { color: 'border-blue-500/50 bg-blue-900/20', text: 'text-blue-400', label: 'Raro' };
+    return { color: 'border-gray-500/50 bg-gray-900/20', text: 'text-gray-400', label: 'Común' };
   };
 
   return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-white mb-2">Logros</h2>
-        <p className="text-gray-400 text-sm">Desbloquea logros para obtener recompensas especiales</p>
-      </div>
-
-      <div className="space-y-3">
-        {gameState.achievements.map((achievement: any, index: number) => {
-          const progress = getAchievementProgress(achievement);
-          const onTimer = isAchievementOnTimer(achievement);
+    <div className="p-4">
+      <h2 className="text-xl font-bold text-white mb-4 text-center">Logros</h2>
+      
+      <div className="space-y-4">
+        {achievements.map((achievement: any) => {
+          const progress = Math.min(100, (achievement.current_value / achievement.target_value) * 100);
+          const onCooldown = isOnCooldown(achievement);
+          const cooldownTime = getCooldownTime(achievement);
+          const rarity = getAchievementRarity(achievement.reward_amount);
           
           return (
-            <Card key={index} className="bg-gray-800/50 border-gray-700">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-white text-base flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-400" />
-                  {achievement.achievement_name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {achievement.achievement_description && (
-                  <p className="text-gray-400 text-sm">{achievement.achievement_description}</p>
-                )}
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Progreso</span>
-                    <span className="text-white">{achievement.current_value}/{achievement.target_value}</span>
+            <Card key={achievement.id} className={`${
+              achievement.is_completed && !achievement.is_claimed ? `bg-green-900/20 border-green-500/50` :
+              onCooldown ? 'bg-gray-900/30 border-gray-600/50' :
+              rarity.color
+            }`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{getAchievementIcon(achievement.achievement_name)}</div>
+                    <div>
+                      <h3 className="text-white font-bold text-sm">{achievement.achievement_name}</h3>
+                      <p className="text-xs text-gray-400 mb-1">{achievement.achievement_description}</p>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Trophy className="h-3 w-3" />
+                        <span className={rarity.text}>{rarity.label}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-purple-400">
+                    <Zap className="h-4 w-4" />
+                    <span className="text-sm font-bold">+{achievement.reward_amount}</span>
+                  </div>
+                </div>
+                
+                <div className="mb-3">
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Progreso</span>
+                    <span>{achievement.current_value}/{achievement.target_value}</span>
                   </div>
                   <Progress value={progress} className="h-2" />
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-yellow-400">
-                    +{achievement.reward_amount} {achievement.reward_type}
+                
+                {onCooldown ? (
+                  <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                    <Clock className="h-4 w-4" />
+                    <span>Disponible en {cooldownTime}</span>
                   </div>
-                  
-                  <div>
-                    {achievement.is_claimed && onTimer ? (
-                      <div className="flex items-center gap-2 text-orange-400 text-sm">
-                        <Timer className="h-4 w-4" />
-                        <span>12h restantes</span>
-                      </div>
-                    ) : achievement.is_claimed ? (
-                      <div className="flex items-center gap-2 text-green-400 text-sm">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Completado</span>
-                      </div>
-                    ) : achievement.is_completed ? (
-                      <Button 
-                        size="sm"
-                        onClick={() => claimAchievement(achievement)}
-                        className="bg-yellow-600 hover:bg-yellow-500"
-                      >
-                        Reclamar
-                      </Button>
-                    ) : (
-                      <span className="text-gray-500 text-sm">En progreso</span>
-                    )}
+                ) : achievement.is_completed && !achievement.is_claimed ? (
+                  <Button
+                    onClick={() => handleClaimAchievement(achievement)}
+                    disabled={claiming === achievement.id}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500"
+                  >
+                    {claiming === achievement.id ? 'Reclamando...' : '¡Reclamar Logro!'}
+                  </Button>
+                ) : achievement.is_claimed || achievement.is_completed ? (
+                  <div className="flex items-center justify-center gap-2 text-green-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm">Completado</span>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center text-gray-400 text-sm">
+                    En progreso... ({Math.round(progress)}%)
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

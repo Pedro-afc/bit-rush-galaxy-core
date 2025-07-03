@@ -13,12 +13,42 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   const [tapCount, setTapCount] = useState(0);
+  const [localGameState, setLocalGameState] = useState(gameState);
   const { toast } = useToast();
 
-  const { stats } = gameState;
+  // Update local state when gameState changes
+  useEffect(() => {
+    setLocalGameState(gameState);
+  }, [gameState]);
+
+  const refreshGameState = async () => {
+    try {
+      // Reload floating cards data
+      const { data: floatingCards } = await supabase
+        .from('floating_cards')
+        .select('*')
+        .eq('user_id', gameState.user.id)
+        .order('card_name, position');
+
+      // Reload stats
+      const { data: stats } = await supabase
+        .from('stats')
+        .select('*')
+        .eq('user_id', gameState.user.id)
+        .single();
+
+      setLocalGameState(prev => ({
+        ...prev,
+        floatingCards: floatingCards || [],
+        stats: stats || prev.stats
+      }));
+    } catch (error) {
+      console.error('Error refreshing game state:', error);
+    }
+  };
 
   const handleTap = async () => {
-    if (!stats || stats.energy <= 0) {
+    if (!localGameState.stats || localGameState.stats.energy <= 0) {
       toast({
         title: "Sin energía",
         description: "Espera a que se recargue tu energía",
@@ -31,12 +61,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
     setTapCount(newTapCount);
 
     // Calculate rewards
-    const coinsGained = stats.mining_rate;
-    const xpGain = Math.floor(stats.mining_rate * 0.1);
+    const coinsGained = localGameState.stats.mining_rate;
+    const xpGain = Math.floor(localGameState.stats.mining_rate * 0.1);
 
-    const newCoins = stats.coins + coinsGained;
-    const newEnergy = Math.max(0, stats.energy - 1);
-    const newXp = stats.xp + xpGain;
+    const newCoins = localGameState.stats.coins + coinsGained;
+    const newEnergy = Math.max(0, localGameState.stats.energy - 1);
+    const newXp = localGameState.stats.xp + xpGain;
 
     try {
       await supabase
@@ -47,15 +77,18 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
           xp: newXp,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', gameState.user.id);
+        .eq('user_id', localGameState.user.id);
 
-      // Update local state
-      gameState.stats = {
-        ...stats,
-        coins: newCoins,
-        energy: newEnergy,
-        xp: newXp
-      };
+      // Update local state immediately
+      setLocalGameState(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          coins: newCoins,
+          energy: newEnergy,
+          xp: newXp
+        }
+      }));
 
       // Update mission progress for taps
       await updateMissionProgress('taps', 1);
@@ -72,7 +105,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   };
 
   const updateMissionProgress = async (missionType: string, value: number) => {
-    const mission = gameState.dailyMissions.find((m: any) => m.mission_type === missionType);
+    const mission = localGameState.dailyMissions.find((m: any) => m.mission_type === missionType);
     if (!mission || mission.is_completed) return;
 
     const newValue = Math.min(mission.target_value, mission.current_value + value);
@@ -92,7 +125,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   };
 
   const updateAchievementProgress = async (achievementName: string, value: number) => {
-    const achievement = gameState.achievements.find((a: any) => a.achievement_name === achievementName);
+    const achievement = localGameState.achievements.find((a: any) => a.achievement_name === achievementName);
     if (!achievement || achievement.is_completed) return;
 
     const newValue = Math.min(achievement.target_value, value);
@@ -123,8 +156,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   // Auto-regen energy
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (stats && stats.energy < stats.max_energy) {
-        const newEnergy = Math.min(stats.max_energy, stats.energy + 1);
+      if (localGameState.stats && localGameState.stats.energy < localGameState.stats.max_energy) {
+        const newEnergy = Math.min(localGameState.stats.max_energy, localGameState.stats.energy + 1);
         
         try {
           await supabase
@@ -133,9 +166,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
               energy: newEnergy,
               last_energy_update: new Date().toISOString()
             })
-            .eq('user_id', gameState.user.id);
+            .eq('user_id', localGameState.user.id);
 
-          gameState.stats.energy = newEnergy;
+          setLocalGameState(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              energy: newEnergy
+            }
+          }));
         } catch (error) {
           console.error('Error updating energy:', error);
         }
@@ -143,13 +182,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
     }, getEnergyRegenRate());
 
     return () => clearInterval(interval);
-  }, [stats, gameState.user]);
+  }, [localGameState.stats, localGameState.user]);
 
-  if (!stats) return <div>Cargando...</div>;
+  if (!localGameState.stats) return <div>Cargando...</div>;
 
-  const level = calculateLevel(stats.xp);
-  const xpProgress = (stats.xp % 100000) / 100000 * 100;
-  const energyProgress = (stats.energy / stats.max_energy) * 100;
+  const level = calculateLevel(localGameState.stats.xp);
+  const xpProgress = (localGameState.stats.xp % 100000) / 100000 * 100;
+  const energyProgress = (localGameState.stats.energy / localGameState.stats.max_energy) * 100;
 
   return (
     <div className="h-full flex flex-col items-center justify-between p-4 relative overflow-hidden">
@@ -159,7 +198,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
         <div className="bg-gray-800/50 rounded-lg p-3 border border-cyan-500/20">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-cyan-400">Nivel {level}</span>
-            <span className="text-xs text-gray-400">{stats.xp.toLocaleString()} XP</span>
+            <span className="text-xs text-gray-400">{localGameState.stats.xp.toLocaleString()} XP</span>
           </div>
           <Progress value={xpProgress} className="h-2" />
         </div>
@@ -171,7 +210,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
               <Zap className="h-4 w-4 text-yellow-400" />
               <span className="text-sm text-yellow-400">Energía</span>
             </div>
-            <span className="text-xs text-gray-400">{stats.energy}/{stats.max_energy}</span>
+            <span className="text-xs text-gray-400">{localGameState.stats.energy}/{localGameState.stats.max_energy}</span>
           </div>
           <Progress value={energyProgress} className="h-2" />
         </div>
@@ -182,20 +221,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
         <FloatingCard 
           name="explorer_stash" 
           title="Explorer Stash"
-          floatingCards={gameState.floatingCards}
-          userId={gameState.user.id}
+          floatingCards={localGameState.floatingCards}
+          userId={localGameState.user.id}
+          onStateUpdate={refreshGameState}
         />
         <FloatingCard 
           name="crypto_cavern" 
           title="Crypto Cavern"
-          floatingCards={gameState.floatingCards}
-          userId={gameState.user.id}
+          floatingCards={localGameState.floatingCards}
+          userId={localGameState.user.id}
+          onStateUpdate={refreshGameState}
         />
         <FloatingCard 
           name="skins" 
           title="Skins"
           floatingCards={[]}
-          userId={gameState.user.id}
+          userId={localGameState.user.id}
+          onStateUpdate={refreshGameState}
         />
       </div>
 
@@ -203,7 +245,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
       <div className="flex-1 flex items-center justify-center">
         <Button
           onClick={handleTap}
-          disabled={stats.energy <= 0}
+          disabled={localGameState.stats.energy <= 0}
           className="w-32 h-32 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 shadow-lg shadow-cyan-500/25 border-2 border-cyan-400/50"
         >
           <Pickaxe className="h-12 w-12 text-white" />
@@ -217,7 +259,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
             <Coins className="h-4 w-4 text-green-400" />
             <span className="text-xs text-green-400">Monedas</span>
           </div>
-          <div className="text-sm font-bold text-white">{stats.coins.toLocaleString()}</div>
+          <div className="text-sm font-bold text-white">{localGameState.stats.coins.toLocaleString()}</div>
         </div>
 
         <div className="bg-gray-800/50 rounded-lg p-3 border border-purple-500/20 text-center">
@@ -225,7 +267,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
             <Pickaxe className="h-4 w-4 text-purple-400" />
             <span className="text-xs text-purple-400">Minería/h</span>
           </div>
-          <div className="text-sm font-bold text-white">{stats.mining_rate.toLocaleString()}</div>
+          <div className="text-sm font-bold text-white">{localGameState.stats.mining_rate.toLocaleString()}</div>
         </div>
 
         <div className="bg-gray-800/50 rounded-lg p-3 border border-pink-500/20 text-center">
@@ -233,7 +275,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
             <Star className="h-4 w-4 text-pink-400" />
             <span className="text-xs text-pink-400">Giros</span>
           </div>
-          <div className="text-sm font-bold text-white">{stats.spins || 0}</div>
+          <div className="text-sm font-bold text-white">{localGameState.stats.spins || 0}</div>
         </div>
       </div>
     </div>

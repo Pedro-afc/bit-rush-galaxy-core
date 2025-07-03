@@ -168,6 +168,23 @@ export const useGameState = () => {
     }
   };
 
+  const refreshFloatingCards = async () => {
+    try {
+      const { data: floatingCards } = await supabase
+        .from('floating_cards')
+        .select('*')
+        .eq('user_id', gameState.user.id)
+        .order('card_name, position');
+
+      setGameState(prev => ({
+        ...prev,
+        floatingCards: floatingCards || []
+      }));
+    } catch (error) {
+      console.error('Error refreshing floating cards:', error);
+    }
+  };
+
   useEffect(() => {
     loadGameData();
   }, []);
@@ -178,6 +195,7 @@ export const useGameState = () => {
     updateStats,
     updateMissionProgress,
     updateAchievementProgress,
-    refreshGameState: loadGameData
+    refreshGameState: loadGameData,
+    refreshFloatingCards
   };
 };

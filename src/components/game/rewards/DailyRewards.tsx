@@ -27,10 +27,18 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
     { type: 'coins', amount: 5000, icon: Coins, color: 'text-yellow-400', label: '5K Monedas' },
     { type: 'spins', amount: 3, icon: Zap, color: 'text-purple-400', label: '+3 Giros' },
     { type: 'coins', amount: 2500, icon: Coins, color: 'text-yellow-400', label: '2.5K Monedas' },
-    { type: 'spins', amount: 1, icon: Zap, color: 'text-purple-400', label: '+1 Giro' },
     { type: 'spins', amount: 4, icon: Zap, color: 'text-purple-400', label: '+4 Giros' },
+    { type: 'spins', amount: 5, icon: Zap, color: 'text-purple-400', label: '+5 Giros' },
     { type: 'coins', amount: 10000, icon: Coins, color: 'text-yellow-400', label: '10K Monedas' },
   ];
+
+  const formatAmount = (amount: number, type: string) => {
+    if (type !== 'coins') return amount.toString();
+    if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 1)}K`;
+    }
+    return amount.toString();
+  };
 
   const handleClaimReward = async (day: number, reward: any) => {
     if (day !== currentDay || reward.is_claimed || claiming) return;
@@ -62,10 +70,13 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
 
       toast({
         title: "¡Recompensa reclamada!",
-        description: `+${reward.reward_amount} ${reward.reward_type === 'coins' ? 'monedas' : 'giros'}`,
+        description: `+${formatAmount(reward.reward_amount, reward.reward_type)} ${reward.reward_type === 'coins' ? 'monedas' : 'giros'}`,
       });
 
-      window.location.reload();
+      // Update local state instead of reloading
+      Object.assign(gameState.stats, updates);
+      reward.is_claimed = true;
+
     } catch (error) {
       console.error('Error claiming reward:', error);
       toast({
@@ -122,9 +133,8 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
           description: `Ganaste: ${selectedReward.label}`,
         });
 
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+        // Update local state instead of reloading
+        Object.assign(gameState.stats, updates);
 
       } catch (error) {
         console.error('Error spinning wheel:', error);
@@ -188,7 +198,7 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
                     <div className="text-xs">
                       {reward && (
                         <div className={`font-bold ${getRewardColor(reward.reward_type)} text-xs`}>
-                          {reward.reward_amount}
+                          {formatAmount(reward.reward_amount, reward.reward_type)}
                         </div>
                       )}
                     </div>

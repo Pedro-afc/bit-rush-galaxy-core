@@ -38,10 +38,11 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
         .eq('id', mission.id);
 
       // Add spins to player
+      const newSpins = gameState.stats.spins + mission.reward_amount;
       await supabase
         .from('stats')
         .update({ 
-          spins: gameState.stats.spins + mission.reward_amount 
+          spins: newSpins
         })
         .eq('user_id', gameState.user.id);
 
@@ -50,10 +51,13 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
         description: `+${mission.reward_amount} giros de ruleta`,
       });
 
-      // Refresh game state
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Update local state instead of reloading
+      gameState.stats.spins = newSpins;
+      mission.is_claimed = true;
+      mission.is_completed = false;
+      mission.current_value = 0;
+      mission.unlock_timer = cooldownTime.toISOString();
+
     } catch (error) {
       console.error('Error claiming mission:', error);
       toast({
@@ -121,7 +125,9 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
                       </h3>
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         <Target className="h-3 w-3" />
-                        <span>{mission.current_value}/{mission.target_value}</span>
+                        <span className={onCooldown ? 'text-gray-500' : 'text-gray-400'}>
+                          {mission.current_value}/{mission.target_value}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -153,7 +159,7 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
                     <span className="text-sm">Completada</span>
                   </div>
                 ) : (
-                  <div className="text-center text-gray-400 text-sm">
+                  <div className={`text-center text-sm ${onCooldown ? 'text-gray-500' : 'text-gray-400'}`}>
                     En progreso...
                   </div>
                 )}

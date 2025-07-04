@@ -36,10 +36,11 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
         .eq('id', achievement.id);
 
       // Add spins to player
+      const newSpins = gameState.stats.spins + achievement.reward_amount;
       await supabase
         .from('stats')
         .update({ 
-          spins: gameState.stats.spins + achievement.reward_amount 
+          spins: newSpins
         })
         .eq('user_id', gameState.user.id);
 
@@ -48,10 +49,11 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
         description: `+${achievement.reward_amount} giros de ruleta`,
       });
 
-      // Refresh game state
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Update local state instead of reloading
+      gameState.stats.spins = newSpins;
+      achievement.is_claimed = true;
+      achievement.unlock_timer = cooldownTime.toISOString();
+
     } catch (error) {
       console.error('Error claiming achievement:', error);
       toast({
@@ -141,8 +143,10 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
                 
                 <div className="mb-3">
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>Progreso</span>
-                    <span>{achievement.current_value}/{achievement.target_value}</span>
+                    <span className={onCooldown ? 'text-gray-500' : 'text-gray-400'}>Progreso</span>
+                    <span className={onCooldown ? 'text-gray-500' : 'text-gray-400'}>
+                      {achievement.current_value}/{achievement.target_value}
+                    </span>
                   </div>
                   <Progress value={progress} className="h-2" />
                 </div>
@@ -166,7 +170,7 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
                     <span className="text-sm">Completado</span>
                   </div>
                 ) : (
-                  <div className="text-center text-gray-400 text-sm">
+                  <div className={`text-center text-sm ${onCooldown ? 'text-gray-500' : 'text-gray-400'}`}>
                     En progreso... ({Math.round(progress)}%)
                   </div>
                 )}

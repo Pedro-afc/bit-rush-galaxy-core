@@ -1,19 +1,58 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import HomeScreen from './game/HomeScreen';
 import CardsScreen from './game/CardsScreen';
 import RewardsScreen from './game/RewardsScreen';
 import ShopScreen from './game/ShopScreen';
 import ReferralsScreen from './game/ReferralsScreen';
-import { useGameState } from '@/hooks/useGameState';
-import { Home, CreditCard, Gift, ShoppingBag, Users } from 'lucide-react';
+import AuthPage from './auth/AuthPage';
+import { useAuth } from '@/hooks/useAuth';
+import { useSecureGameState } from '@/hooks/useSecureGameState';
+import { Home, CreditCard, Gift, ShoppingBag, Users, LogOut } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const BitRushGame = () => {
   const [activeTab, setActiveTab] = useState('home');
-  const { gameState, loading, refreshGameState } = useGameState();
+  const { user, loading: authLoading, signOut, isAuthenticated } = useAuth();
+  const { gameState, loading: gameLoading, refreshGameState } = useSecureGameState();
+  const { toast } = useToast();
 
-  if (loading) {
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar sesión",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente"
+      });
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    // Auth state will be handled by useAuth hook
+    refreshGameState();
+  };
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-900">
+        <div className="text-cyan-400 text-xl">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+  }
+
+  if (gameLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900">
         <div className="text-cyan-400 text-xl">Cargando Bit Rush...</div>
@@ -24,6 +63,22 @@ const BitRushGame = () => {
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+        {/* Header with user info and logout */}
+        <div className="flex justify-between items-center p-4 border-b border-cyan-500/20">
+          <div className="text-cyan-400 font-bold">
+            Bit Rush - {user?.email}
+          </div>
+          <Button
+            onClick={handleSignOut}
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-white"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Salir
+          </Button>
+        </div>
+
         <div className="flex-1 overflow-hidden">
           <TabsContent value="home" className="h-full m-0">
             <HomeScreen gameState={gameState} />

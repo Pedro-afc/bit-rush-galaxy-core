@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './useAuth';
 
 interface Card {
   name: string;
@@ -14,6 +15,7 @@ interface Card {
 }
 
 export const useCardOperations = (gameState: any, refreshGameState: () => void) => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [timers, setTimers] = useState<{[key: string]: number}>({});
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,6 +73,8 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
   }, [gameState.cards]);
 
   const upgradeCard = async (card: Card, type: string) => {
+    if (!user) return;
+    
     const { stats } = gameState;
     
     // Check if user has enough resources
@@ -126,7 +130,7 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
       await supabase
         .from('stats')
         .update(statsUpdates)
-        .eq('user_id', gameState.user.id);
+        .eq('user_id', user.id);
 
       // Create/update card with timer (3 hours cooldown)
       const unlockTime = new Date();
@@ -144,13 +148,14 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
             unlock_timer: unlockTime.toISOString(),
             updated_at: new Date().toISOString()
           })
-          .eq('id', existingCard.id);
+          .eq('id', existingCard.id)
+          .eq('user_id', user.id);
       } else {
         // Create new card
         await supabase
           .from('cards')
           .insert({
-            user_id: gameState.user.id,
+            user_id: user.id,
             card_type: type,
             card_name: card.name,
             level: 1,
@@ -180,6 +185,8 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
   };
 
   const skipTimer = async (cardName: string) => {
+    if (!user) return;
+    
     const { stats } = gameState;
     const starsRequired = 10; // Cost to skip timer
     
@@ -200,7 +207,7 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
           stars: stats.stars - starsRequired,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', gameState.user.id);
+        .eq('user_id', user.id);
 
       // Remove timer from card
       const existingCard = gameState.cards.find((c: any) => c.card_name === cardName);
@@ -211,7 +218,8 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
             unlock_timer: null,
             updated_at: new Date().toISOString()
           })
-          .eq('id', existingCard.id);
+          .eq('id', existingCard.id)
+          .eq('user_id', user.id);
       }
 
       toast({

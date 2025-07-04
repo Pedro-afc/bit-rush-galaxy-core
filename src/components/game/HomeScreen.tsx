@@ -6,6 +6,7 @@ import { Zap, Coins, Star, Pickaxe } from 'lucide-react';
 import FloatingCard from './FloatingCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HomeScreenProps {
   gameState: any;
@@ -14,6 +15,7 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   const [tapCount, setTapCount] = useState(0);
   const [localGameState, setLocalGameState] = useState(gameState);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Update local state when gameState changes
@@ -22,19 +24,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   }, [gameState]);
 
   const refreshGameState = async () => {
+    if (!user) return;
+
     try {
       // Reload floating cards data
       const { data: floatingCards } = await supabase
         .from('floating_cards')
         .select('*')
-        .eq('user_id', gameState.user.id)
+        .eq('user_id', user.id)
         .order('card_name, position');
 
       // Reload stats
       const { data: stats } = await supabase
         .from('stats')
         .select('*')
-        .eq('user_id', gameState.user.id)
+        .eq('user_id', user.id)
         .single();
 
       setLocalGameState(prev => ({
@@ -48,7 +52,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   };
 
   const handleTap = async () => {
-    if (!localGameState.stats || localGameState.stats.energy <= 0) {
+    if (!user || !localGameState.stats || localGameState.stats.energy <= 0) {
       toast({
         title: "Sin energía",
         description: "Espera a que se recargue tu energía",
@@ -77,7 +81,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
           xp: newXp,
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', localGameState.user.id);
+        .eq('user_id', user.id);
 
       // Update local state immediately
       setLocalGameState(prev => ({
@@ -105,6 +109,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
   };
 
   const updateMissionProgress = async (missionType: string, value: number) => {
+    if (!user) return;
+    
     const mission = localGameState.dailyMissions.find((m: any) => m.mission_type === missionType);
     if (!mission || mission.is_completed) return;
 
@@ -118,13 +124,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
           current_value: newValue,
           is_completed: isCompleted
         })
-        .eq('id', mission.id);
+        .eq('id', mission.id)
+        .eq('user_id', user.id);
     } catch (error) {
       console.error('Error updating mission progress:', error);
     }
   };
 
   const updateAchievementProgress = async (achievementName: string, value: number) => {
+    if (!user) return;
+    
     const achievement = localGameState.achievements.find((a: any) => a.achievement_name === achievementName);
     if (!achievement || achievement.is_completed) return;
 
@@ -138,7 +147,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
           current_value: newValue,
           is_completed: isCompleted
         })
-        .eq('id', achievement.id);
+        .eq('id', achievement.id)
+        .eq('user_id', user.id);
     } catch (error) {
       console.error('Error updating achievement progress:', error);
     }
@@ -155,6 +165,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
 
   // Auto-regen energy
   useEffect(() => {
+    if (!user) return;
+
     const interval = setInterval(async () => {
       if (localGameState.stats && localGameState.stats.energy < localGameState.stats.max_energy) {
         const newEnergy = Math.min(localGameState.stats.max_energy, localGameState.stats.energy + 1);
@@ -166,7 +178,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
               energy: newEnergy,
               last_energy_update: new Date().toISOString()
             })
-            .eq('user_id', localGameState.user.id);
+            .eq('user_id', user.id);
 
           setLocalGameState(prev => ({
             ...prev,
@@ -182,7 +194,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
     }, getEnergyRegenRate());
 
     return () => clearInterval(interval);
-  }, [localGameState.stats, localGameState.user]);
+  }, [localGameState.stats, user]);
 
   if (!localGameState.stats) return <div>Cargando...</div>;
 
@@ -222,21 +234,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
           name="explorer_stash" 
           title="Explorer Stash"
           floatingCards={localGameState.floatingCards}
-          userId={localGameState.user.id}
+          userId={user?.id || ''}
           onStateUpdate={refreshGameState}
         />
         <FloatingCard 
           name="crypto_cavern" 
           title="Crypto Cavern"
           floatingCards={localGameState.floatingCards}
-          userId={localGameState.user.id}
+          userId={user?.id || ''}
           onStateUpdate={refreshGameState}
         />
         <FloatingCard 
           name="skins" 
           title="Skins"
           floatingCards={[]}
-          userId={localGameState.user.id}
+          userId={user?.id || ''}
           onStateUpdate={refreshGameState}
         />
       </div>
@@ -245,12 +257,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
       <div className="flex-1 flex items-center justify-center">
         <Button
           onClick={handleTap}
-          onTouchStart={handleTap} // Added for better mobile responsiveness
+          onTouchStart={handleTap}
           disabled={localGameState.stats.energy <= 0}
           className="w-40 h-40 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-95 disabled:opacity-50 shadow-lg shadow-cyan-500/25 border-2 border-cyan-400/50 transition-all duration-150 touch-manipulation"
           style={{
-            WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
-            userSelect: 'none', // Prevent text selection
+            WebkitTapHighlightColor: 'transparent',
+            userSelect: 'none',
             WebkitUserSelect: 'none'
           }}
         >

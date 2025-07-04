@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -6,9 +5,10 @@ import CardCategory from './CardCategory';
 
 interface CardsScreenProps {
   gameState: any;
+  refreshGameState: () => void;
 }
 
-const CardsScreen: React.FC<CardsScreenProps> = ({ gameState }) => {
+const CardsScreen: React.FC<CardsScreenProps> = ({ gameState, refreshGameState }) => {
   const commonCards = [
     { name: 'Minero Básico', level: 1, miningBonus: 2, priceCoins: 1000, description: 'Tu primera herramienta de minería', icon: '⛏️' },
     { name: 'Excavadora Simple', level: 1, miningBonus: 5, priceCoins: 2500, description: 'Excavación mejorada', icon: '🚜' },
@@ -66,6 +66,7 @@ const CardsScreen: React.FC<CardsScreenProps> = ({ gameState }) => {
                 gameState={gameState}
                 type="common"
                 categoryColor="text-green-400"
+                refreshGameState={refreshGameState}
               />
             </ScrollArea>
           </TabsContent>
@@ -78,6 +79,7 @@ const CardsScreen: React.FC<CardsScreenProps> = ({ gameState }) => {
                 gameState={gameState}
                 type="rare"
                 categoryColor="text-blue-400"
+                refreshGameState={refreshGameState}
               />
             </ScrollArea>
           </TabsContent>
@@ -90,6 +92,7 @@ const CardsScreen: React.FC<CardsScreenProps> = ({ gameState }) => {
                 gameState={gameState}
                 type="epic"
                 categoryColor="text-purple-400"
+                refreshGameState={refreshGameState}
               />
             </ScrollArea>
           </TabsContent>
@@ -102,6 +105,7 @@ const CardsScreen: React.FC<CardsScreenProps> = ({ gameState }) => {
                 gameState={gameState}
                 type="elite"
                 categoryColor="text-yellow-400"
+                refreshGameState={refreshGameState}
               />
             </ScrollArea>
           </TabsContent>

@@ -13,7 +13,7 @@ interface Card {
   icon: string;
 }
 
-export const useCardOperations = (gameState: any) => {
+export const useCardOperations = (gameState: any, refreshGameState: () => void) => {
   const { toast } = useToast();
   const [timers, setTimers] = useState<{[key: string]: number}>({});
 
@@ -135,17 +135,67 @@ export const useCardOperations = (gameState: any) => {
         description: `${card.name} mejorada. +${xpGain} XP${newLevel > stats.level ? ` ¡Nivel ${newLevel}!` : ''}`,
       });
 
-      // Update local state
-      Object.assign(gameState.stats, statsUpdates);
-      
-      // Refresh game state
-      window.location.reload();
+      // Refresh game state instead of reloading the page
+      refreshGameState();
 
     } catch (error) {
       console.error('Error upgrading card:', error);
       toast({
         title: "Error",
         description: "No se pudo mejorar la carta",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const skipTimer = async (cardName: string) => {
+    const { stats } = gameState;
+    const starsRequired = 10; // Cost to skip timer
+    
+    if (stats.stars < starsRequired) {
+      toast({
+        title: "Estrellas insuficientes",
+        description: `Necesitas ${starsRequired} estrellas para saltar el tiempo`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Update stats - subtract stars
+      await supabase
+        .from('stats')
+        .update({ 
+          stars: stats.stars - starsRequired,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', gameState.user.id);
+
+      // Remove timer from card
+      const existingCard = gameState.cards.find((c: any) => c.card_name === cardName);
+      if (existingCard) {
+        await supabase
+          .from('cards')
+          .update({
+            unlock_timer: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingCard.id);
+      }
+
+      toast({
+        title: "¡Timer saltado!",
+        description: `Usado ${starsRequired} estrellas para saltar el tiempo`,
+      });
+
+      // Refresh game state
+      refreshGameState();
+
+    } catch (error) {
+      console.error('Error skipping timer:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo saltar el tiempo",
         variant: "destructive"
       });
     }
@@ -168,6 +218,7 @@ export const useCardOperations = (gameState: any) => {
   return {
     timers,
     upgradeCard,
+    skipTimer,
     getCardLevel,
     getCardMiningBonus,
     isCardOnTimer

@@ -19,6 +19,7 @@ interface CardCategoryProps {
   gameState: any;
   type: string;
   categoryColor: string;
+  refreshGameState: () => void;
 }
 
 const CardCategory: React.FC<CardCategoryProps> = ({ 
@@ -26,18 +27,24 @@ const CardCategory: React.FC<CardCategoryProps> = ({
   cards, 
   gameState, 
   type, 
-  categoryColor 
+  categoryColor,
+  refreshGameState
 }) => {
   const {
     timers,
     upgradeCard,
+    skipTimer,
     getCardLevel,
     getCardMiningBonus,
     isCardOnTimer
-  } = useCardOperations(gameState);
+  } = useCardOperations(gameState, refreshGameState);
 
   const handleUpgrade = (card: Card) => {
     upgradeCard(card, type);
+  };
+
+  const handleSkipTimer = (cardName: string) => {
+    skipTimer(cardName);
   };
 
   return (
@@ -60,7 +67,9 @@ const CardCategory: React.FC<CardCategoryProps> = ({
               onTimer={onTimer}
               timeLeft={timeLeft}
               categoryColor={categoryColor}
+              gameState={gameState}
               onUpgrade={handleUpgrade}
+              onSkipTimer={handleSkipTimer}
             />
           );
         })}

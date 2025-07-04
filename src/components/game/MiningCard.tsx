@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Coins } from 'lucide-react';
+import { Coins, Star } from 'lucide-react';
 import { CardTimer } from './CardTimer';
 
 interface CardData {
@@ -22,7 +22,9 @@ interface MiningCardProps {
   onTimer: boolean;
   timeLeft: number;
   categoryColor: string;
+  gameState: any;
   onUpgrade: (card: CardData) => void;
+  onSkipTimer: (cardName: string) => void;
 }
 
 export const MiningCard: React.FC<MiningCardProps> = ({
@@ -32,8 +34,13 @@ export const MiningCard: React.FC<MiningCardProps> = ({
   onTimer,
   timeLeft,
   categoryColor,
-  onUpgrade
+  gameState,
+  onUpgrade,
+  onSkipTimer
 }) => {
+  const starsRequired = 10;
+  const hasEnoughStars = gameState?.stats?.stars >= starsRequired;
+
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-colors">
       <CardHeader className="pb-2">
@@ -80,21 +87,38 @@ export const MiningCard: React.FC<MiningCardProps> = ({
           </div>
         </div>
         
-        <Button 
-          onClick={() => onUpgrade(card)}
-          disabled={onTimer}
-          className={`w-full text-xs h-8 ${
-            onTimer 
-              ? 'bg-gray-600 cursor-not-allowed' 
-              : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500'
-          }`}
-        >
-          {onTimer ? (
-            <CardTimer timeLeft={timeLeft} />
-          ) : (
-            cardLevel > 0 ? 'Mejorar' : 'Comprar'
+        <div className="space-y-2">
+          <Button 
+            onClick={() => onUpgrade(card)}
+            disabled={onTimer}
+            className={`w-full text-xs h-8 ${
+              onTimer 
+                ? 'bg-gray-600 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500'
+            }`}
+          >
+            {onTimer ? (
+              <CardTimer timeLeft={timeLeft} />
+            ) : (
+              cardLevel > 0 ? 'Mejorar' : 'Comprar'
+            )}
+          </Button>
+          
+          {onTimer && (
+            <Button
+              onClick={() => onSkipTimer(card.name)}
+              disabled={!hasEnoughStars}
+              className={`w-full text-xs h-8 ${
+                hasEnoughStars
+                  ? 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500'
+                  : 'bg-gray-600 cursor-not-allowed'
+              }`}
+            >
+              <Star className="h-3 w-3 mr-1" />
+              Saltar ({starsRequired} ⭐)
+            </Button>
           )}
-        </Button>
+        </div>
       </CardContent>
     </Card>
   );

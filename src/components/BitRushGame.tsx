@@ -11,7 +11,7 @@ import { Home, CreditCard, Gift, ShoppingBag, Users } from 'lucide-react';
 
 const BitRushGame = () => {
   const [activeTab, setActiveTab] = useState('home');
-  const { gameState, loading } = useGameState();
+  const { gameState, loading, refreshGameState } = useGameState();
 
   if (loading) {
     return (
@@ -29,7 +29,7 @@ const BitRushGame = () => {
             <HomeScreen gameState={gameState} />
           </TabsContent>
           <TabsContent value="cards" className="h-full m-0">
-            <CardsScreen gameState={gameState} />
+            <CardsScreen gameState={gameState} refreshGameState={refreshGameState} />
           </TabsContent>
           <TabsContent value="rewards" className="h-full m-0">
             <RewardsScreen gameState={gameState} />

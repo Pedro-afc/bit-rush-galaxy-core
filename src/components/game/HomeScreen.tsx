@@ -216,8 +216,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
         </div>
       </div>
 
-      {/* Floating Cards */}
-      <div className="flex justify-center gap-4 my-8">
+      {/* Floating Cards - Made smaller */}
+      <div className="flex justify-center gap-2 my-4">
         <FloatingCard 
           name="explorer_stash" 
           title="Explorer Stash"
@@ -241,14 +241,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ gameState }) => {
         />
       </div>
 
-      {/* Main Tap Button */}
+      {/* Main Tap Button - Made bigger and more sensitive */}
       <div className="flex-1 flex items-center justify-center">
         <Button
           onClick={handleTap}
+          onTouchStart={handleTap} // Added for better mobile responsiveness
           disabled={localGameState.stats.energy <= 0}
-          className="w-32 h-32 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 shadow-lg shadow-cyan-500/25 border-2 border-cyan-400/50"
+          className="w-40 h-40 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-95 disabled:opacity-50 shadow-lg shadow-cyan-500/25 border-2 border-cyan-400/50 transition-all duration-150 touch-manipulation"
+          style={{
+            WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
+            userSelect: 'none', // Prevent text selection
+            WebkitUserSelect: 'none'
+          }}
         >
-          <Pickaxe className="h-12 w-12 text-white" />
+          <Pickaxe className="h-16 w-16 text-white" />
         </Button>
       </div>
 

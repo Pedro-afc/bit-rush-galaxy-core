@@ -180,20 +180,37 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
         }
       }
 
-      // CRITICAL: Unlock remaining cards (5-9) after purchasing card 4
+      // FIXED: Unlock remaining cards (5-9) after purchasing card 4
       if (position === 4) {
         console.log(`Unlocking cards 5-9 for ${name}`);
-        const { error: unlockError } = await supabase
+        
+        // Get all cards for this collection and user
+        const { data: allCards, error: fetchError } = await supabase
           .from('floating_cards')
-          .update({ is_unlocked: true })
+          .select('*')
           .eq('card_name', name)
           .eq('user_id', userId)
-          .gte('position', 5);
-        
-        if (unlockError) {
-          console.error('Error unlocking remaining cards:', unlockError);
+          .gte('position', 5)
+          .lte('position', 9);
+
+        if (fetchError) {
+          console.error('Error fetching cards to unlock:', fetchError);
         } else {
-          console.log(`Successfully unlocked cards 5-9 for ${name}`);
+          console.log(`Found ${allCards?.length || 0} cards to unlock for ${name}:`, allCards);
+          
+          const { error: unlockError } = await supabase
+            .from('floating_cards')
+            .update({ is_unlocked: true })
+            .eq('card_name', name)
+            .eq('user_id', userId)
+            .gte('position', 5)
+            .lte('position', 9);
+          
+          if (unlockError) {
+            console.error('Error unlocking remaining cards:', unlockError);
+          } else {
+            console.log(`Successfully unlocked cards 5-9 for ${name}`);
+          }
         }
       }
 
@@ -202,8 +219,10 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
         description: `Compra de ${card.price_ton} TON completada${card.reward_amount ? `. +${card.reward_amount} ${card.reward_type === 'coins' ? 'monedas' : 'giros'}` : ''}`,
       });
 
-      // Force state update
-      onStateUpdate();
+      // Force state update after a small delay to ensure database changes are reflected
+      setTimeout(() => {
+        onStateUpdate();
+      }, 500);
 
     } catch (error) {
       console.error('Error purchasing card:', error);
@@ -362,13 +381,13 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Card className={`cursor-pointer hover:scale-105 transition-transform ${getCardColor()}`}>
-          <CardContent className="p-4 text-center">
+          <CardContent className="p-3 text-center">
             {allClaimed ? (
-              <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-2" />
+              <CheckCircle className="h-6 w-6 text-green-400 mx-auto mb-1" />
             ) : (
-              <div className="text-2xl mb-2">{getCardIcon()}</div>
+              <div className="text-xl mb-1">{getCardIcon()}</div>
             )}
-            <h3 className="text-sm font-bold text-white">{title}</h3>
+            <h3 className="text-xs font-bold text-white">{title}</h3>
             <p className="text-xs text-gray-400 mt-1">
               {name === 'skins' ? 'Exclusivo' : `${claimedCount}/9`}
             </p>

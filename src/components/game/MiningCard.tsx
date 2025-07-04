@@ -40,6 +40,10 @@ export const MiningCard: React.FC<MiningCardProps> = ({
 }) => {
   const starsRequired = 10;
   const hasEnoughStars = gameState?.stats?.stars >= starsRequired;
+  const canUpgrade = !onTimer && (
+    (card.priceCoins && gameState?.stats?.coins >= card.priceCoins) ||
+    (card.priceTon && gameState?.stats?.ton_balance >= card.priceTon)
+  );
 
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:border-cyan-500/50 transition-colors">
@@ -90,11 +94,13 @@ export const MiningCard: React.FC<MiningCardProps> = ({
         <div className="space-y-2">
           <Button 
             onClick={() => onUpgrade(card)}
-            disabled={onTimer}
+            disabled={onTimer || !canUpgrade}
             className={`w-full text-xs h-8 ${
               onTimer 
                 ? 'bg-gray-600 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500'
+                : canUpgrade
+                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500'
+                : 'bg-gray-600 cursor-not-allowed'
             }`}
           >
             {onTimer ? (

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Coins, Calendar, Users, Trophy, Star, Gift2 } from 'lucide-react';
+import { Coins, Calendar, Users, Trophy, Star, Gift } from 'lucide-react';
 
 interface AirdropInfoProps {
   gameState: any;
@@ -31,7 +31,7 @@ const AirdropInfo: React.FC<AirdropInfoProps> = ({ gameState }) => {
       <Card className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border-purple-500/50">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
-            <Gift2 className="h-12 w-12 text-purple-400" />
+            <Gift className="h-12 w-12 text-purple-400" />
           </div>
           <CardTitle className="text-2xl text-purple-400 mb-2">
             🚀 Próximo Airdrop
@@ -123,7 +123,7 @@ const AirdropInfo: React.FC<AirdropInfoProps> = ({ gameState }) => {
       <Card className="bg-gray-800/30 border-yellow-500/30">
         <CardHeader>
           <CardTitle className="text-yellow-400 flex items-center gap-2">
-            <Gift2 className="h-5 w-5" />
+            <Gift className="h-5 w-5" />
             Recompensas Estimadas
           </CardTitle>
         </CardHeader>

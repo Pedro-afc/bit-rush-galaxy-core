@@ -12,7 +12,7 @@ interface FloatingCardProps {
   title: string;
   floatingCards: any[];
   userId: string;
-  onStateUpdate: () => void; // Callback para actualizar estado sin reload
+  onStateUpdate: () => void;
 }
 
 const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards, userId, onStateUpdate }) => {
@@ -47,7 +47,6 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
   const handleClaimCard = async (position: number, card: any) => {
     if (!card.is_unlocked || card.is_claimed || claiming) return;
     
-    // Validar que la carta tenga recompensa válida
     if (!card.reward_type || !card.reward_amount) {
       toast({
         title: "Error",
@@ -102,12 +101,6 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
         description: `+${card.reward_amount} ${card.reward_type === 'coins' ? 'monedas' : 'giros'}`,
       });
 
-      // Check if position 4 was claimed to unlock remaining cards
-      if (position === 4) {
-        await unlockRemainingCards();
-      }
-
-      // Update state through callback instead of reload
       onStateUpdate();
 
     } catch (error) {
@@ -123,18 +116,21 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
   };
 
   const handlePurchaseCard = async (position: number, card: any) => {
-    if (purchasing || !card.price_ton) return;
+    if (purchasing || !card.price_ton || card.is_claimed) return;
     
     setPurchasing(position);
     
     try {
-      // For demo purposes, we'll simulate the TON purchase
+      // Simulate TON wallet interaction
       toast({
-        title: "Compra simulada",
-        description: `Se simula la compra de ${card.price_ton} TON`,
+        title: "Conectando wallet TON",
+        description: "Simulando transacción...",
       });
 
-      // Mark card as purchased and claimed
+      // Simulate a delay for the transaction
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Mark card as purchased and claimed (since it's a purchase, it's automatically claimed)
       const { error: cardError } = await supabase
         .from('floating_cards')
         .update({ 
@@ -169,15 +165,27 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
         }
       }
 
-      // Unlock remaining cards
-      await unlockRemainingCards();
+      // CRITICAL: Unlock remaining cards (5-9) after purchasing card 4
+      if (position === 4) {
+        const { error: unlockError } = await supabase
+          .from('floating_cards')
+          .update({ is_unlocked: true })
+          .eq('card_name', name)
+          .eq('user_id', userId)
+          .gte('position', 5);
+        
+        if (unlockError) {
+          console.error('Error unlocking remaining cards:', unlockError);
+        } else {
+          console.log(`Successfully unlocked cards 5-9 for ${name}`);
+        }
+      }
 
       toast({
         title: "¡Compra exitosa!",
-        description: `+${card.reward_amount} ${card.reward_type === 'coins' ? 'monedas' : 'giros'}`,
+        description: `Compra de ${card.price_ton} TON completada. +${card.reward_amount} ${card.reward_type === 'coins' ? 'monedas' : 'giros'}`,
       });
 
-      // Update state through callback instead of reload
       onStateUpdate();
 
     } catch (error) {
@@ -189,21 +197,6 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
       });
     } finally {
       setPurchasing(null);
-    }
-  };
-
-  const unlockRemainingCards = async () => {
-    try {
-      const { error } = await supabase
-        .from('floating_cards')
-        .update({ is_unlocked: true })
-        .eq('card_name', name)
-        .eq('user_id', userId)
-        .gte('position', 5);
-      
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error unlocking remaining cards:', error);
     }
   };
 
@@ -236,7 +229,7 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
       const isClaimed = card?.is_claimed || false;
       const isFree = i <= 3;
       const isTonCard = i === 4;
-      const isLocked = i > 4 && !isUnlocked;
+      const isLocked = !isUnlocked;
       const hasValidReward = card?.reward_type && card?.reward_amount;
 
       grid.push(
@@ -251,7 +244,7 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
           <CardContent className="p-3 text-center">
             {isClaimed ? (
               <CheckCircle className="h-6 w-6 text-green-400 mx-auto mb-2" />
-            ) : !isUnlocked ? (
+            ) : isLocked ? (
               <Lock className="h-6 w-6 text-gray-500 mx-auto mb-2" />
             ) : (
               <div className="text-lg mb-2">{getCardIcon()}</div>
@@ -264,7 +257,8 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
                 </div>
               )}
               
-              {isFree && !isClaimed && isUnlocked && hasValidReward && (
+              {/* FREE cards (1-3) */}
+              {isFree && isUnlocked && !isClaimed && hasValidReward && (
                 <div className="space-y-1">
                   <div className="text-green-400 font-bold">GRATIS</div>
                   <Button 
@@ -278,9 +272,10 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
                 </div>
               )}
               
-              {isTonCard && !isClaimed && (
+              {/* TON card (4) */}
+              {isTonCard && !isClaimed && card?.price_ton && (
                 <div className="space-y-1">
-                  <div className="text-yellow-400 font-bold">{card?.price_ton} TON</div>
+                  <div className="text-yellow-400 font-bold">{card.price_ton} TON</div>
                   <Button 
                     size="sm" 
                     className="w-full text-xs h-6 bg-yellow-600 hover:bg-yellow-500"
@@ -292,6 +287,7 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
                 </div>
               )}
               
+              {/* Unlocked cards after TON purchase (5-9) */}
               {i > 4 && isUnlocked && !isClaimed && hasValidReward && (
                 <div className="space-y-1">
                   <div className="text-cyan-400 font-bold">DISPONIBLE</div>
@@ -306,14 +302,19 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
                 </div>
               )}
               
+              {/* Locked state */}
               {isLocked && (
-                <div className="text-gray-500 text-xs">Bloqueado</div>
+                <div className="text-gray-500 text-xs">
+                  {isTonCard ? 'Compra con TON' : 'Bloqueado'}
+                </div>
               )}
               
+              {/* Already claimed state */}
               {isClaimed && (
                 <div className="text-green-400 text-xs">✓ Reclamado</div>
               )}
 
+              {/* Invalid reward error */}
               {!hasValidReward && isUnlocked && !isClaimed && (
                 <div className="text-red-400 text-xs">Sin recompensa</div>
               )}

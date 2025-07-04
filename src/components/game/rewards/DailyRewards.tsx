@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,14 +118,21 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
           .update(updates)
           .eq('user_id', gameState.user.id);
 
+        // Update wheel stats - Corregir el contador de giros utilizados
+        const currentSpinsUsed = gameState.rewardsWheel?.spins_used || 0;
+        const currentRewardsClaimed = gameState.rewardsWheel?.total_rewards_claimed || 0;
+        
         await supabase
           .from('rewards_wheel')
-          .update({
-            spins_used: (gameState.rewardsWheel?.spins_used || 0) + 1,
-            total_rewards_claimed: (gameState.rewardsWheel?.total_rewards_claimed || 0) + 1,
-            last_spin: new Date().toISOString()
-          })
-          .eq('user_id', gameState.user.id);
+          .upsert({
+            user_id: gameState.user.id,
+            spins_used: currentSpinsUsed + 1,
+            total_rewards_claimed: currentRewardsClaimed + 1,
+            last_spin: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id'
+          });
 
         toast({
           title: "¡Felicidades!",
@@ -135,6 +141,18 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
 
         // Update local state instead of reloading
         Object.assign(gameState.stats, updates);
+        
+        // Update local rewards wheel state
+        if (gameState.rewardsWheel) {
+          gameState.rewardsWheel.spins_used = currentSpinsUsed + 1;
+          gameState.rewardsWheel.total_rewards_claimed = currentRewardsClaimed + 1;
+        } else {
+          gameState.rewardsWheel = {
+            spins_used: 1,
+            total_rewards_claimed: 1,
+            last_spin: new Date().toISOString()
+          };
+        }
 
       } catch (error) {
         console.error('Error spinning wheel:', error);

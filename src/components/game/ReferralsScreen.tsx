@@ -11,10 +11,9 @@ interface ReferralsScreenProps {
 }
 
 const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ gameState }) => {
-  const [referralCode, setReferralCode] = useState('');
   const { toast } = useToast();
 
-  const referralLink = `https://t.me/BitRushBot?start=${gameState.user?.referral_code || 'DEMO123'}`;
+  const referralLink = `https://t.me/Bitrushh_bot?start=${gameState.user?.referral_code || 'DEMO123'}`;
   
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -32,11 +31,8 @@ const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ gameState }) => {
     { requirement: '50 referidos', reward: '150 giros + 50000 monedas', icon: '🏆' },
   ];
 
-  const referredUsers = [
-    { username: 'CryptoFan', joinDate: '2024-01-15', rewardClaimed: true },
-    { username: 'MiningPro', joinDate: '2024-01-14', rewardClaimed: true },
-    { username: 'BitExplorer', joinDate: '2024-01-13', rewardClaimed: false },
-  ];
+  // Get actual referrals from gameState
+  const actualReferrals = gameState.referrals || [];
 
   return (
     <div className="h-full bg-gradient-to-b from-gray-900 to-gray-800 p-3 sm:p-4 space-y-4 sm:space-y-6 overflow-y-auto">
@@ -50,7 +46,7 @@ const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ gameState }) => {
         <Card className="bg-gray-800/50 border-cyan-500/20">
           <CardContent className="p-3 sm:p-4 text-center">
             <Users className="h-6 w-6 sm:h-8 sm:w-8 text-cyan-400 mx-auto mb-2" />
-            <div className="text-xl sm:text-2xl font-bold text-white">{referredUsers.length}</div>
+            <div className="text-xl sm:text-2xl font-bold text-white">{actualReferrals.length}</div>
             <div className="text-xs sm:text-sm text-cyan-400">Referidos Totales</div>
           </CardContent>
         </Card>
@@ -58,7 +54,7 @@ const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ gameState }) => {
         <Card className="bg-gray-800/50 border-green-500/20">
           <CardContent className="p-3 sm:p-4 text-center">
             <Gift className="h-6 w-6 sm:h-8 sm:w-8 text-green-400 mx-auto mb-2" />
-            <div className="text-xl sm:text-2xl font-bold text-white">{referredUsers.filter(u => u.rewardClaimed).length}</div>
+            <div className="text-xl sm:text-2xl font-bold text-white">{actualReferrals.filter(r => r.reward_claimed).length}</div>
             <div className="text-xs sm:text-sm text-green-400">Recompensas Reclamadas</div>
           </CardContent>
         </Card>
@@ -113,7 +109,7 @@ const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ gameState }) => {
                   </div>
                 </div>
                 <div className="text-sm text-gray-500">
-                  {referredUsers.length >= parseInt(reward.requirement) ? '✅' : '⏳'}
+                  {actualReferrals.length >= parseInt(reward.requirement) ? '✅' : '⏳'}
                 </div>
               </div>
             ))}
@@ -127,19 +123,19 @@ const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ gameState }) => {
           <CardTitle className="text-white text-base sm:text-lg">Tus Referidos</CardTitle>
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
-          {referredUsers.length > 0 ? (
+          {actualReferrals.length > 0 ? (
             <div className="space-y-2 sm:space-y-3">
-              {referredUsers.map((user, index) => (
+              {actualReferrals.map((referral, index) => (
                 <div 
                   key={index}
                   className="flex items-center justify-between p-2 sm:p-3 bg-gray-700/30 rounded-lg border border-gray-600/30"
                 >
                   <div>
-                    <div className="text-white font-bold text-sm sm:text-base">{user.username}</div>
-                    <div className="text-xs sm:text-sm text-gray-400">Se unió: {user.joinDate}</div>
+                    <div className="text-white font-bold text-sm sm:text-base">Usuario {index + 1}</div>
+                    <div className="text-xs sm:text-sm text-gray-400">Se unió: {new Date(referral.created_at).toLocaleDateString()}</div>
                   </div>
                   <div className="text-xs sm:text-sm">
-                    {user.rewardClaimed ? (
+                    {referral.reward_claimed ? (
                       <span className="text-green-400">✅ Recompensa reclamada</span>
                     ) : (
                       <Button size="sm" className="bg-green-600 hover:bg-green-500 text-xs px-2 py-1">
@@ -160,11 +156,11 @@ const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ gameState }) => {
         </CardContent>
       </Card>
 
-      {/* Quick Guide */}
-      <Card className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border-purple-500/30">
+      {/* Quick Guide - Improved background */}
+      <Card className="bg-gray-800/80 border-purple-500/30 backdrop-blur-sm">
         <CardContent className="p-3 sm:p-4">
           <h3 className="text-white font-bold mb-2 text-sm sm:text-base">📋 Guía Rápida</h3>
-          <ul className="text-xs sm:text-sm text-gray-300 space-y-1">
+          <ul className="text-xs sm:text-sm text-gray-200 space-y-1">
             <li>• Copia tu enlace de referido</li>
             <li>• Compártelo con tus amigos</li>
             <li>• Gana recompensas cuando se unan</li>

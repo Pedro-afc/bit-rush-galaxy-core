@@ -19,10 +19,10 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       name: 'Paquete Básico',
       description: 'Perfecto para comenzar tu aventura',
       icon: '📦',
-      price_coins: 5000,
+      price_coins: 15000,
       items: [
         { type: 'spins', amount: 3, icon: '🎰' },
-        { type: 'mining_rate', amount: 5, icon: '⛏️' }
+        { type: 'mining_rate', amount: 10, icon: '⛏️' }
       ],
       popular: false
     },
@@ -31,11 +31,11 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       name: 'Paquete Premium',
       description: 'La mejor relación calidad-precio',
       icon: '🎁',
-      price_stars: 25,
+      price_stars: 50,
       items: [
         { type: 'spins', amount: 10, icon: '🎰' },
-        { type: 'coins', amount: 15000, icon: '💰' },
-        { type: 'mining_rate', amount: 15, icon: '⛏️' }
+        { type: 'coins', amount: 25000, icon: '💰' },
+        { type: 'mining_rate', amount: 25, icon: '⛏️' }
       ],
       popular: true
     },
@@ -44,12 +44,12 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       name: 'Paquete Élite',
       description: 'Para los jugadores más exigentes',
       icon: '👑',
-      price_ton: 0.5,
+      price_ton: 1.0,
       items: [
         { type: 'spins', amount: 25, icon: '🎰' },
-        { type: 'coins', amount: 50000, icon: '💰' },
-        { type: 'stars', amount: 50, icon: '⭐' },
-        { type: 'mining_rate', amount: 30, icon: '⛏️' }
+        { type: 'coins', amount: 75000, icon: '💰' },
+        { type: 'stars', amount: 100, icon: '⭐' },
+        { type: 'mining_rate', amount: 50, icon: '⛏️' }
       ],
       popular: false
     }
@@ -61,8 +61,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       name: '1,000 Monedas',
       description: 'Monedas instantáneas',
       icon: '💰',
-      price_stars: 5,
-      cooldown: 1, // 1 hour
+      price_stars: 10,
+      cooldown: 1,
       reward: { type: 'coins', amount: 1000 }
     },
     {
@@ -70,8 +70,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       name: 'Boost Minería +5',
       description: 'Aumenta tu tasa de minería permanentemente',
       icon: '⛏️',
-      price_coins: 3000,
-      cooldown: 2, // 2 hours
+      price_coins: 8000,
+      cooldown: 2,
       reward: { type: 'mining_rate', amount: 5 }
     },
     {
@@ -79,26 +79,35 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       name: 'Boost Minería +15',
       description: 'Gran aumento de minería permanente',
       icon: '⚡',
-      price_stars: 20,
-      cooldown: 4, // 4 hours
+      price_stars: 40,
+      cooldown: 4,
       reward: { type: 'mining_rate', amount: 15 }
+    },
+    {
+      id: 'mining_boost_large',
+      name: 'Boost Minería +25',
+      description: 'Aumento importante de minería permanente',
+      icon: '💎',
+      price_coins: 25000,
+      cooldown: 6,
+      reward: { type: 'mining_rate', amount: 25 }
     },
     {
       id: 'spin_pack',
       name: 'Pack de Giros',
       description: '5 giros para la ruleta',
       icon: '🎰',
-      price_stars: 15,
-      cooldown: 6, // 6 hours
+      price_stars: 30,
+      cooldown: 6,
       reward: { type: 'spins', amount: 5 }
     },
     {
-      id: 'mining_boost_large',
+      id: 'mining_boost_huge',
       name: 'Boost Minería +50',
       description: 'Aumento masivo de minería permanente',
       icon: '💎',
-      price_ton: 0.2,
-      cooldown: 8, // 8 hours
+      price_ton: 0.4,
+      cooldown: 8,
       reward: { type: 'mining_rate', amount: 50 }
     },
     {
@@ -106,8 +115,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       name: '10,000 Monedas',
       description: 'Gran cantidad de monedas',
       icon: '💰',
-      price_ton: 0.1,
-      cooldown: 12, // 12 hours
+      price_ton: 0.2,
+      cooldown: 12,
       reward: { type: 'coins', amount: 10000 }
     }
   ];

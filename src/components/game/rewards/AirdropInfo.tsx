@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Coins, Calendar, Users, Trophy, Star, Gift } from 'lucide-react';
+import { Coins, Calendar, Trophy, Star, Gift } from 'lucide-react';
 
 interface AirdropInfoProps {
   gameState: any;
@@ -11,12 +11,13 @@ interface AirdropInfoProps {
 const AirdropInfo: React.FC<AirdropInfoProps> = ({ gameState }) => {
   const userLevel = gameState?.stats?.level || 1;
   const userCoins = gameState?.stats?.coins || 0;
-  const referralCount = 0; // This would come from referrals data
+  // Simulamos el conteo de NFTs por colección (esto se implementará en el futuro)
+  const nftCollections = 0;
 
   const airdropRequirements = [
     { icon: Trophy, label: 'Nivel 10+', current: userLevel, target: 10, color: 'text-yellow-400' },
     { icon: Coins, label: '100K Monedas', current: userCoins, target: 100000, color: 'text-green-400' },
-    { icon: Users, label: '5 Referidos', current: referralCount, target: 5, color: 'text-blue-400' },
+    { icon: Star, label: '1 NFT de cada colección', current: nftCollections, target: 1, color: 'text-purple-400' },
   ];
 
   const calculateProgress = (current: number, target: number) => {
@@ -28,12 +29,12 @@ const AirdropInfo: React.FC<AirdropInfoProps> = ({ gameState }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 border-purple-500/50">
+      <Card className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-blue-500/50">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-2">
-            <Gift className="h-12 w-12 text-purple-400" />
+            <Gift className="h-12 w-12 text-blue-400" />
           </div>
-          <CardTitle className="text-2xl text-purple-400 mb-2">
+          <CardTitle className="text-2xl text-blue-400 mb-2">
             🚀 Próximo Airdrop
           </CardTitle>
           <p className="text-gray-300 text-sm">
@@ -50,7 +51,7 @@ const AirdropInfo: React.FC<AirdropInfoProps> = ({ gameState }) => {
             <span className="text-cyan-400 font-bold">Fecha Estimada</span>
           </div>
           <div className="text-3xl font-bold text-white mb-2">
-            Q2 2025
+            Q3 2026
           </div>
           <p className="text-gray-400 text-sm">
             Mantente activo para calificar
@@ -154,13 +155,13 @@ const AirdropInfo: React.FC<AirdropInfoProps> = ({ gameState }) => {
       </Card>
 
       {/* Call to Action */}
-      <Card className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border-cyan-500/50">
+      <Card className="bg-gray-800/30 border-cyan-500/30">
         <CardContent className="p-6 text-center">
           <h3 className="text-xl font-bold text-cyan-400 mb-2">
             ¡No te quedes fuera!
           </h3>
           <p className="text-gray-300 text-sm mb-4">
-            Sigue jugando diariamente, mejora tus cartas y refiere amigos para asegurar tu lugar en el airdrop más grande de Bit Rush.
+            Sigue jugando diariamente, mejora tus cartas y colecciona NFTs para asegurar tu lugar en el airdrop más grande de Bit Rush.
           </p>
           <Button className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500">
             Continuar Jugando

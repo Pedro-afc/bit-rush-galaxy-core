@@ -49,7 +49,9 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
       });
 
       // Refresh game state
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error claiming achievement:', error);
       toast({
@@ -110,7 +112,7 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
           return (
             <Card key={achievement.id} className={`${
               achievement.is_completed && !achievement.is_claimed ? `bg-green-900/20 border-green-500/50` :
-              onCooldown ? 'bg-gray-900/30 border-gray-600/50' :
+              onCooldown ? 'bg-gray-900/30 border-gray-600/50 opacity-50' :
               rarity.color
             }`}>
               <CardContent className="p-4">
@@ -118,16 +120,20 @@ const Achievements: React.FC<AchievementsProps> = ({ gameState }) => {
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{getAchievementIcon(achievement.achievement_name)}</div>
                     <div>
-                      <h3 className="text-white font-bold text-sm">{achievement.achievement_name}</h3>
-                      <p className="text-xs text-gray-400 mb-1">{achievement.achievement_description}</p>
+                      <h3 className={`font-bold text-sm ${onCooldown ? 'text-gray-500' : 'text-white'}`}>
+                        {achievement.achievement_name}
+                      </h3>
+                      <p className={`text-xs mb-1 ${onCooldown ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {achievement.achievement_description}
+                      </p>
                       <div className="flex items-center gap-2 text-xs">
                         <Trophy className="h-3 w-3" />
-                        <span className={rarity.text}>{rarity.label}</span>
+                        <span className={onCooldown ? 'text-gray-500' : rarity.text}>{rarity.label}</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-purple-400">
+                  <div className={`flex items-center gap-2 ${onCooldown ? 'text-gray-500' : 'text-purple-400'}`}>
                     <Zap className="h-4 w-4" />
                     <span className="text-sm font-bold">+{achievement.reward_amount}</span>
                   </div>

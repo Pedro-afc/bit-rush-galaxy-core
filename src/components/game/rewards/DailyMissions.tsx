@@ -31,7 +31,9 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
         .from('daily_missions')
         .update({ 
           is_claimed: true,
-          unlock_timer: cooldownTime.toISOString()
+          unlock_timer: cooldownTime.toISOString(),
+          is_completed: false,
+          current_value: 0
         })
         .eq('id', mission.id);
 
@@ -49,7 +51,9 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
       });
 
       // Refresh game state
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error claiming mission:', error);
       toast({
@@ -59,26 +63,6 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
       });
     } finally {
       setClaiming(null);
-    }
-  };
-
-  const updateMissionProgress = async (missionType: string, value: number) => {
-    const mission = missions.find((m: any) => m.mission_type === missionType);
-    if (!mission || mission.is_completed) return;
-
-    const newValue = Math.min(mission.target_value, mission.current_value + value);
-    const isCompleted = newValue >= mission.target_value;
-
-    try {
-      await supabase
-        .from('daily_missions')
-        .update({
-          current_value: newValue,
-          is_completed: isCompleted
-        })
-        .eq('id', mission.id);
-    } catch (error) {
-      console.error('Error updating mission progress:', error);
     }
   };
 
@@ -124,7 +108,7 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
           return (
             <Card key={mission.id} className={`${
               mission.is_completed && !mission.is_claimed ? 'bg-green-900/20 border-green-500/50' :
-              onCooldown ? 'bg-gray-900/30 border-gray-600/50' :
+              onCooldown ? 'bg-gray-900/30 border-gray-600/50 opacity-50' :
               'bg-gray-800/50 border-cyan-500/20'
             }`}>
               <CardContent className="p-4">
@@ -132,7 +116,9 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{getMissionIcon(mission.mission_type)}</div>
                     <div>
-                      <h3 className="text-white font-bold text-sm">{mission.mission_name}</h3>
+                      <h3 className={`font-bold text-sm ${onCooldown ? 'text-gray-500' : 'text-white'}`}>
+                        {mission.mission_name}
+                      </h3>
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         <Target className="h-3 w-3" />
                         <span>{mission.current_value}/{mission.target_value}</span>
@@ -140,7 +126,7 @@ const DailyMissions: React.FC<DailyMissionsProps> = ({ gameState }) => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-purple-400">
+                  <div className={`flex items-center gap-2 ${onCooldown ? 'text-gray-500' : 'text-purple-400'}`}>
                     <Zap className="h-4 w-4" />
                     <span className="text-sm font-bold">+{mission.reward_amount}</span>
                   </div>

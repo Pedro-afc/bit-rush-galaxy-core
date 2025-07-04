@@ -23,12 +23,12 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
 
   const rewards = [
     { type: 'coins', amount: 1000, icon: Coins, color: 'text-yellow-400', label: '1K Monedas' },
-    { type: 'coins', amount: 2500, icon: Coins, color: 'text-yellow-400', label: '2.5K Monedas' },
-    { type: 'coins', amount: 5000, icon: Coins, color: 'text-yellow-400', label: '5K Monedas' },
-    { type: 'spins', amount: 1, icon: Zap, color: 'text-purple-400', label: '+1 Giro' },
-    { type: 'coins', amount: 500, icon: Coins, color: 'text-yellow-400', label: '500 Monedas' },
-    { type: 'coins', amount: 7500, icon: Coins, color: 'text-yellow-400', label: '7.5K Monedas' },
     { type: 'spins', amount: 2, icon: Zap, color: 'text-purple-400', label: '+2 Giros' },
+    { type: 'coins', amount: 5000, icon: Coins, color: 'text-yellow-400', label: '5K Monedas' },
+    { type: 'spins', amount: 3, icon: Zap, color: 'text-purple-400', label: '+3 Giros' },
+    { type: 'coins', amount: 2500, icon: Coins, color: 'text-yellow-400', label: '2.5K Monedas' },
+    { type: 'spins', amount: 1, icon: Zap, color: 'text-purple-400', label: '+1 Giro' },
+    { type: 'spins', amount: 4, icon: Zap, color: 'text-purple-400', label: '+4 Giros' },
     { type: 'coins', amount: 10000, icon: Coins, color: 'text-yellow-400', label: '10K Monedas' },
   ];
 
@@ -140,7 +140,7 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
   };
 
   const getRewardIcon = (type: string) => {
-    return type === 'coins' ? <Coins className="h-4 w-4" /> : <Zap className="h-4 w-4" />;
+    return type === 'coins' ? <Coins className="h-3 w-3 sm:h-4 sm:w-4" /> : <Zap className="h-3 w-3 sm:h-4 sm:w-4" />;
   };
 
   const getRewardColor = (type: string) => {
@@ -148,18 +148,18 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Daily Login Section */}
       <Card className="bg-gray-800/30 border-cyan-500/30">
-        <CardHeader>
-          <CardTitle className="text-cyan-400 text-center flex items-center justify-center gap-2">
-            <Gift className="h-5 w-5" />
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-cyan-400 text-center flex items-center justify-center gap-2 text-sm sm:text-base">
+            <Gift className="h-4 w-4 sm:h-5 sm:w-5" />
             Login Diario
           </CardTitle>
-          <p className="text-gray-400 text-sm text-center">Día actual: {currentDay}</p>
+          <p className="text-gray-400 text-xs sm:text-sm text-center">Día actual: {currentDay}</p>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-2">
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {[1, 2, 3, 4, 5, 6, 7].map((day) => {
               const reward = dailyRewards.find((r: any) => r.day === day);
               const isCurrentDay = day === currentDay;
@@ -172,13 +172,13 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
                   isCurrentDay ? 'bg-cyan-900/30 border-cyan-500/50' :
                   'bg-gray-900/30 border-gray-700/50'
                 }`}>
-                  <CardContent className="p-3 text-center">
+                  <CardContent className="p-1.5 sm:p-3 text-center">
                     <div className="text-xs text-gray-400 mb-1">Día {day}</div>
                     
                     {isClaimed ? (
-                      <CheckCircle className="h-6 w-6 text-green-400 mx-auto mb-1" />
+                      <CheckCircle className="h-4 w-4 sm:h-6 sm:w-6 text-green-400 mx-auto mb-1" />
                     ) : isLocked ? (
-                      <Lock className="h-6 w-6 text-gray-500 mx-auto mb-1" />
+                      <Lock className="h-4 w-4 sm:h-6 sm:w-6 text-gray-500 mx-auto mb-1" />
                     ) : (
                       <div className={`${getRewardColor(reward?.reward_type || 'coins')} mb-1 flex justify-center`}>
                         {getRewardIcon(reward?.reward_type || 'coins')}
@@ -187,7 +187,7 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
                     
                     <div className="text-xs">
                       {reward && (
-                        <div className={`font-bold ${getRewardColor(reward.reward_type)}`}>
+                        <div className={`font-bold ${getRewardColor(reward.reward_type)} text-xs`}>
                           {reward.reward_amount}
                         </div>
                       )}
@@ -198,7 +198,7 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
                         size="sm"
                         onClick={() => handleClaimReward(day, reward)}
                         disabled={claiming === day}
-                        className="w-full mt-2 h-6 text-xs bg-cyan-600 hover:bg-cyan-500"
+                        className="w-full mt-1 sm:mt-2 h-5 sm:h-6 text-xs bg-cyan-600 hover:bg-cyan-500 px-1"
                       >
                         {claiming === day ? 'Reclamando...' : 'Reclamar'}
                       </Button>
@@ -215,17 +215,17 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
 
       {/* Rewards Wheel Section */}
       <Card className="bg-gray-800/30 border-purple-500/30">
-        <CardHeader>
-          <CardTitle className="text-purple-400 text-center flex items-center justify-center gap-2">
-            <Zap className="h-5 w-5" />
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-purple-400 text-center flex items-center justify-center gap-2 text-sm sm:text-base">
+            <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
             Ruleta de Recompensas
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center">
+        <CardContent className="text-center p-3 sm:p-6">
           {/* Wheel */}
-          <div className="relative mx-auto mb-6" style={{ width: '280px', height: '280px' }}>
+          <div className="relative mx-auto mb-4 sm:mb-6" style={{ width: '200px', height: '200px' }}>
             <div 
-              className="absolute inset-0 rounded-full border-4 border-purple-500 transition-transform duration-3000 ease-out"
+              className="absolute inset-0 rounded-full border-2 sm:border-4 border-purple-500 transition-transform duration-3000 ease-out"
               style={{ 
                 transform: `rotate(${rotation}deg)`,
                 background: `conic-gradient(${rewards.map((_, i) => 
@@ -243,33 +243,33 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
                     style={{
                       top: '50%',
                       left: '50%',
-                      width: '60px',
-                      height: '20px',
-                      transform: `translate(-50%, -50%) rotate(${angle + 22.5}deg) translateY(-100px)`,
+                      width: '40px',
+                      height: '15px',
+                      transform: `translate(-50%, -50%) rotate(${angle + 22.5}deg) translateY(-70px)`,
                       transformOrigin: 'center'
                     }}
                   >
-                    <Icon className="h-3 w-3" />
+                    <Icon className="h-2 w-2 sm:h-3 sm:w-3" />
                   </div>
                 );
               })}
             </div>
             
             {/* Pointer */}
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2 w-0 h-0 border-l-4 border-r-4 border-b-8 border-l-transparent border-r-transparent border-b-white z-10"></div>
+            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-2 border-r-2 border-b-4 sm:border-l-4 sm:border-r-4 sm:border-b-8 border-l-transparent border-r-transparent border-b-white z-10"></div>
           </div>
 
           {/* Spin Button */}
           <Card className="bg-gray-800/50 border-purple-500/50 mb-4">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-center gap-2 mb-3">
-                <Zap className="h-5 w-5 text-purple-400" />
-                <span className="text-purple-400 font-bold">Giros disponibles: {availableSpins}</span>
+                <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+                <span className="text-purple-400 font-bold text-sm sm:text-base">Giros disponibles: {availableSpins}</span>
               </div>
               <Button
                 onClick={handleSpin}
                 disabled={availableSpins <= 0 || spinning}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 text-sm sm:text-base"
               >
                 {spinning ? 'Girando...' : availableSpins <= 0 ? 'Sin giros' : '¡Girar Ruleta!'}
               </Button>
@@ -277,17 +277,17 @@ const DailyRewards: React.FC<DailyRewardsProps> = ({ gameState }) => {
           </Card>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 text-sm">
             <Card className="bg-gray-800/30 border-gray-600/50">
-              <CardContent className="p-3 text-center">
-                <div className="text-gray-400">Giros usados</div>
-                <div className="text-white font-bold">{gameState.rewardsWheel?.spins_used || 0}</div>
+              <CardContent className="p-2 sm:p-3 text-center">
+                <div className="text-gray-400 text-xs sm:text-sm">Giros usados</div>
+                <div className="text-white font-bold text-sm sm:text-base">{gameState.rewardsWheel?.spins_used || 0}</div>
               </CardContent>
             </Card>
             <Card className="bg-gray-800/30 border-gray-600/50">
-              <CardContent className="p-3 text-center">
-                <div className="text-gray-400">Recompensas</div>
-                <div className="text-white font-bold">{gameState.rewardsWheel?.total_rewards_claimed || 0}</div>
+              <CardContent className="p-2 sm:p-3 text-center">
+                <div className="text-gray-400 text-xs sm:text-sm">Recompensas</div>
+                <div className="text-white font-bold text-sm sm:text-base">{gameState.rewardsWheel?.total_rewards_claimed || 0}</div>
               </CardContent>
             </Card>
           </div>

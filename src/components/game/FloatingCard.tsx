@@ -26,6 +26,8 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
   const claimedCount = cardData.filter(card => card.is_claimed).length;
   const allClaimed = claimedCount === totalCards;
 
+  console.log(`FloatingCard ${name} - cardData:`, cardData);
+
   const getCardIcon = () => {
     switch (name) {
       case 'explorer_stash': return '🗺️';
@@ -57,6 +59,7 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
     }
     
     setClaiming(position);
+    console.log(`Claiming card ${position} for ${name}:`, card);
     
     try {
       // Mark card as claimed
@@ -119,6 +122,7 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
     if (purchasing || !card.price_ton || card.is_claimed) return;
     
     setPurchasing(position);
+    console.log(`Purchasing card ${position} for ${name} with ${card.price_ton} TON:`, card);
     
     try {
       // Simulate TON wallet interaction
@@ -140,33 +144,45 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
         })
         .eq('id', card.id);
 
-      if (cardError) throw cardError;
+      if (cardError) {
+        console.error('Error updating purchased card:', cardError);
+        throw cardError;
+      }
 
-      // Add reward
-      const { data: currentStats } = await supabase
-        .from('stats')
-        .select('coins, spins')
-        .eq('user_id', userId)
-        .single();
+      console.log(`Successfully purchased card ${position} for ${name}`);
 
-      if (currentStats) {
-        const updates: any = {};
-        if (card.reward_type === 'spins') {
-          updates.spins = (currentStats.spins || 0) + card.reward_amount;
-        } else if (card.reward_type === 'coins') {
-          updates.coins = (currentStats.coins || 0) + card.reward_amount;
-        }
+      // Add reward if the card has one
+      if (card.reward_type && card.reward_amount) {
+        const { data: currentStats } = await supabase
+          .from('stats')
+          .select('coins, spins')
+          .eq('user_id', userId)
+          .single();
 
-        if (Object.keys(updates).length > 0) {
-          await supabase
-            .from('stats')
-            .update(updates)
-            .eq('user_id', userId);
+        if (currentStats) {
+          const updates: any = {};
+          if (card.reward_type === 'spins') {
+            updates.spins = (currentStats.spins || 0) + card.reward_amount;
+          } else if (card.reward_type === 'coins') {
+            updates.coins = (currentStats.coins || 0) + card.reward_amount;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            const { error: statsError } = await supabase
+              .from('stats')
+              .update(updates)
+              .eq('user_id', userId);
+            
+            if (statsError) {
+              console.error('Error updating stats after purchase:', statsError);
+            }
+          }
         }
       }
 
       // CRITICAL: Unlock remaining cards (5-9) after purchasing card 4
       if (position === 4) {
+        console.log(`Unlocking cards 5-9 for ${name}`);
         const { error: unlockError } = await supabase
           .from('floating_cards')
           .update({ is_unlocked: true })
@@ -183,9 +199,10 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
 
       toast({
         title: "¡Compra exitosa!",
-        description: `Compra de ${card.price_ton} TON completada. +${card.reward_amount} ${card.reward_type === 'coins' ? 'monedas' : 'giros'}`,
+        description: `Compra de ${card.price_ton} TON completada${card.reward_amount ? `. +${card.reward_amount} ${card.reward_type === 'coins' ? 'monedas' : 'giros'}` : ''}`,
       });
 
+      // Force state update
       onStateUpdate();
 
     } catch (error) {
@@ -231,6 +248,16 @@ const FloatingCard: React.FC<FloatingCardProps> = ({ name, title, floatingCards,
       const isTonCard = i === 4;
       const isLocked = !isUnlocked;
       const hasValidReward = card?.reward_type && card?.reward_amount;
+
+      console.log(`Card ${i} for ${name}:`, {
+        isUnlocked,
+        isClaimed,
+        isFree,
+        isTonCard,
+        isLocked,
+        hasValidReward,
+        card
+      });
 
       grid.push(
         <Card 

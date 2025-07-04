@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,10 +16,37 @@ interface Card {
 export const useCardOperations = (gameState: any, refreshGameState: () => void) => {
   const { toast } = useToast();
   const [timers, setTimers] = useState<{[key: string]: number}>({});
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update timers every second
+  // Initialize timers immediately when gameState changes
   useEffect(() => {
-    const interval = setInterval(() => {
+    const initializeTimers = () => {
+      const now = new Date().getTime();
+      const newTimers: {[key: string]: number} = {};
+      
+      gameState.cards.forEach((card: any) => {
+        if (card.unlock_timer) {
+          const unlockTime = new Date(card.unlock_timer).getTime();
+          const timeLeft = Math.max(0, unlockTime - now);
+          if (timeLeft > 0) {
+            newTimers[card.card_name] = timeLeft;
+          }
+        }
+      });
+      
+      setTimers(newTimers);
+    };
+
+    // Initialize immediately
+    initializeTimers();
+
+    // Clear existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Update timers every second
+    intervalRef.current = setInterval(() => {
       const now = new Date().getTime();
       const newTimers: {[key: string]: number} = {};
       
@@ -36,7 +63,11 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
       setTimers(newTimers);
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, [gameState.cards]);
 
   const upgradeCard = async (card: Card, type: string) => {

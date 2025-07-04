@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Coins, Star, Timer, Package, Zap, Heart } from 'lucide-react';
+import { Coins, Star, Timer, Package, Zap, Pickaxe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,7 +22,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       price_coins: 5000,
       items: [
         { type: 'spins', amount: 3, icon: '🎰' },
-        { type: 'energy', amount: 50, icon: '⚡' }
+        { type: 'mining_rate', amount: 5, icon: '⛏️' }
       ],
       popular: false
     },
@@ -36,7 +35,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       items: [
         { type: 'spins', amount: 10, icon: '🎰' },
         { type: 'coins', amount: 15000, icon: '💰' },
-        { type: 'energy', amount: 100, icon: '⚡' }
+        { type: 'mining_rate', amount: 15, icon: '⛏️' }
       ],
       popular: true
     },
@@ -50,7 +49,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
         { type: 'spins', amount: 25, icon: '🎰' },
         { type: 'coins', amount: 50000, icon: '💰' },
         { type: 'stars', amount: 50, icon: '⭐' },
-        { type: 'energy', amount: 200, icon: '⚡' }
+        { type: 'mining_rate', amount: 30, icon: '⛏️' }
       ],
       popular: false
     }
@@ -67,13 +66,22 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       reward: { type: 'coins', amount: 1000 }
     },
     {
-      id: 'energy_boost',
-      name: 'Boost de Energía',
-      description: 'Restaura 50 puntos de energía',
-      icon: '⚡',
-      price_coins: 2500,
+      id: 'mining_boost_small',
+      name: 'Boost Minería +5',
+      description: 'Aumenta tu tasa de minería permanentemente',
+      icon: '⛏️',
+      price_coins: 3000,
       cooldown: 2, // 2 hours
-      reward: { type: 'energy', amount: 50 }
+      reward: { type: 'mining_rate', amount: 5 }
+    },
+    {
+      id: 'mining_boost_medium',
+      name: 'Boost Minería +15',
+      description: 'Gran aumento de minería permanente',
+      icon: '⚡',
+      price_stars: 20,
+      cooldown: 4, // 4 hours
+      reward: { type: 'mining_rate', amount: 15 }
     },
     {
       id: 'spin_pack',
@@ -85,10 +93,19 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       reward: { type: 'spins', amount: 5 }
     },
     {
+      id: 'mining_boost_large',
+      name: 'Boost Minería +50',
+      description: 'Aumento masivo de minería permanente',
+      icon: '💎',
+      price_ton: 0.2,
+      cooldown: 8, // 8 hours
+      reward: { type: 'mining_rate', amount: 50 }
+    },
+    {
       id: 'mega_coins',
       name: '10,000 Monedas',
       description: 'Gran cantidad de monedas',
-      icon: '💎',
+      icon: '💰',
       price_ton: 0.1,
       cooldown: 12, // 12 hours
       reward: { type: 'coins', amount: 10000 }
@@ -161,8 +178,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
             case 'stars':
               updates.stars = (updates.stars !== undefined ? updates.stars : stats.stars) + packItem.amount;
               break;
-            case 'energy':
-              updates.energy = Math.min(stats.max_energy, (updates.energy !== undefined ? updates.energy : stats.energy) + packItem.amount);
+            case 'mining_rate':
+              updates.mining_rate = (updates.mining_rate !== undefined ? updates.mining_rate : stats.mining_rate) + packItem.amount;
               break;
           }
         });
@@ -175,8 +192,8 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
           case 'spins':
             updates.spins = (updates.spins !== undefined ? updates.spins : stats.spins) + item.reward.amount;
             break;
-          case 'energy':
-            updates.energy = Math.min(stats.max_energy, (updates.energy !== undefined ? updates.energy : stats.energy) + item.reward.amount);
+          case 'mining_rate':
+            updates.mining_rate = (updates.mining_rate !== undefined ? updates.mining_rate : stats.mining_rate) + item.reward.amount;
             break;
         }
       }
@@ -324,7 +341,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({ gameState }) => {
       {/* Artículos Individuales */}
       <div>
         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Zap className="h-5 w-5 text-cyan-400" />
+          <Pickaxe className="h-5 w-5 text-cyan-400" />
           Artículos Individuales
         </h2>
         <div className="grid gap-4">

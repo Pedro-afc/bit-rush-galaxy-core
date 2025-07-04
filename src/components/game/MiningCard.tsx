@@ -95,7 +95,7 @@ export const MiningCard: React.FC<MiningCardProps> = ({
           <Button 
             onClick={() => onUpgrade(card)}
             disabled={onTimer || !canUpgrade}
-            className={`w-full text-xs h-8 ${
+            className={`w-full text-xs h-8 transition-all duration-200 ${
               onTimer 
                 ? 'bg-gray-600 cursor-not-allowed' 
                 : canUpgrade
@@ -114,7 +114,7 @@ export const MiningCard: React.FC<MiningCardProps> = ({
             <Button
               onClick={() => onSkipTimer(card.name)}
               disabled={!hasEnoughStars}
-              className={`w-full text-xs h-8 ${
+              className={`w-full text-xs h-8 transition-all duration-200 ${
                 hasEnoughStars
                   ? 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500'
                   : 'bg-gray-600 cursor-not-allowed'

@@ -9,17 +9,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // Get initial session
+    // Get initial session first
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -38,6 +28,16 @@ export const useAuth = () => {
     };
 
     getInitialSession();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
@@ -60,7 +60,7 @@ export const useAuth = () => {
   const getWalletInfo = () => {
     if (!user) return null;
     
-    const isWalletUser = user.user_metadata?.is_wallet_user || user.email?.includes('@telegram.wallet') || false;
+    const isWalletUser = user.user_metadata?.is_wallet_user || user.email?.includes('@telegramwallet.com') || false;
     const walletAddress = user.user_metadata?.wallet_address || user.user_metadata?.telegram_id || null;
     const username = user.user_metadata?.username || `User_${user.id.slice(-8)}`;
     

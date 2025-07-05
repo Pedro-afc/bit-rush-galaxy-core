@@ -13,6 +13,7 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
 
   // Check if user is already logged in
@@ -20,6 +21,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        console.log('User already authenticated, entering game...');
         onAuthSuccess();
       }
     };
@@ -62,7 +64,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
       if (signInError && signInError.message.includes('Invalid login credentials')) {
         // User doesn't exist, create new account
         console.log('Creating new user account...');
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email: walletEmail,
           password: walletPassword,
           options: {
@@ -83,15 +85,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             description: signUpError.message,
             variant: "destructive"
           });
-        } else {
+        } else if (data.user) {
+          console.log('User created successfully:', data.user.email);
+          setIsConnected(true);
           toast({
             title: "¡Wallet conectada!",
             description: "Tu wallet de Telegram se ha conectado exitosamente"
           });
-          // Small delay to ensure auth state is updated
-          setTimeout(() => {
-            onAuthSuccess();
-          }, 1000);
         }
       } else if (signInError) {
         console.error('Signin error:', signInError);
@@ -101,14 +101,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           variant: "destructive"
         });
       } else {
+        console.log('User signed in successfully');
+        setIsConnected(true);
         toast({
           title: "¡Bienvenido de vuelta!",
           description: "Tu wallet de Telegram se ha conectado exitosamente"
         });
-        // Small delay to ensure auth state is updated
-        setTimeout(() => {
-          onAuthSuccess();
-        }, 1000);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -122,8 +120,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     }
   };
 
+  const handleEnterGame = () => {
+    console.log('Entering game directly...');
+    onAuthSuccess();
+  };
+
   const handleDisconnectWallet = () => {
     setWalletAddress('');
+    setIsConnected(false);
   };
 
   return (
@@ -180,13 +184,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               
               <div className="space-y-2">
                 <Button
-                  onClick={() => {
-                    console.log('Entering game...');
-                    onAuthSuccess();
-                  }}
+                  onClick={handleEnterGame}
                   className="w-full bg-green-600 hover:bg-green-500"
+                  disabled={!isConnected}
                 >
-                  Entrar al juego
+                  {isConnected ? 'Entrar al juego' : 'Completando conexión...'}
                 </Button>
                 
                 <Button

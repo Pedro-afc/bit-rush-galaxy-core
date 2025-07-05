@@ -20,33 +20,54 @@ export const useAuth = () => {
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+        } else {
+          console.log('Initial session:', session?.user?.email);
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getInitialSession();
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      setUser(null);
-      setSession(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (!error) {
+        setUser(null);
+        setSession(null);
+      }
+      return { error };
+    } catch (error) {
+      console.error('Error signing out:', error);
+      return { error };
     }
-    return { error };
   };
 
   // Extract wallet information from user metadata
   const getWalletInfo = () => {
     if (!user) return null;
     
+    const isWalletUser = user.user_metadata?.is_wallet_user || user.email?.includes('@telegram.wallet') || false;
+    const walletAddress = user.user_metadata?.wallet_address || user.user_metadata?.telegram_id || null;
+    const username = user.user_metadata?.username || `User_${user.id.slice(-8)}`;
+    
     return {
-      address: user.user_metadata?.wallet_address || user.user_metadata?.telegram_id || null,
-      username: user.user_metadata?.username || `User_${user.id.slice(-8)}`,
-      isWalletUser: user.email?.includes('@telegram-wallet.local') || false
+      address: walletAddress,
+      username,
+      isWalletUser
     };
   };
 

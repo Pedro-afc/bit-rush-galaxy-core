@@ -27,8 +27,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   }, [onAuthSuccess]);
 
   const generateMockWalletAddress = () => {
-    // Generate a mock Telegram wallet address
-    const chars = '0123456789abcdef';
+    // Generate a mock TON wallet address (more realistic format)
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     let address = 'UQ';
     for (let i = 0; i < 46; i++) {
       address += chars[Math.floor(Math.random() * chars.length)];
@@ -46,9 +46,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
       const mockAddress = generateMockWalletAddress();
       setWalletAddress(mockAddress);
 
-      // Create a unique email based on wallet address for Supabase auth
-      const walletEmail = `${mockAddress.toLowerCase()}@telegram-wallet.local`;
-      const walletPassword = mockAddress; // Use wallet address as password for demo
+      // Create a valid email format for Supabase using a unique identifier
+      const uniqueId = mockAddress.slice(-12); // Use last 12 chars for uniqueness
+      const walletEmail = `wallet_${uniqueId}@telegram.wallet`;
+      const walletPassword = `wallet_${mockAddress.slice(-16)}`; // Use last 16 chars as password
+
+      console.log('Attempting authentication with:', walletEmail);
 
       // Try to sign in first, if it fails, sign up
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -58,6 +61,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
 
       if (signInError && signInError.message.includes('Invalid login credentials')) {
         // User doesn't exist, create new account
+        console.log('Creating new user account...');
         const { error: signUpError } = await supabase.auth.signUp({
           email: walletEmail,
           password: walletPassword,
@@ -66,12 +70,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             data: {
               username: `User_${mockAddress.slice(-8)}`,
               telegram_id: mockAddress,
-              wallet_address: mockAddress
+              wallet_address: mockAddress,
+              is_wallet_user: true
             }
           }
         });
 
         if (signUpError) {
+          console.error('Signup error:', signUpError);
           toast({
             title: "Error de registro",
             description: signUpError.message,
@@ -82,9 +88,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             title: "¡Wallet conectada!",
             description: "Tu wallet de Telegram se ha conectado exitosamente"
           });
-          onAuthSuccess();
+          // Small delay to ensure auth state is updated
+          setTimeout(() => {
+            onAuthSuccess();
+          }, 1000);
         }
       } else if (signInError) {
+        console.error('Signin error:', signInError);
         toast({
           title: "Error de conexión",
           description: signInError.message,
@@ -95,9 +105,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           title: "¡Bienvenido de vuelta!",
           description: "Tu wallet de Telegram se ha conectado exitosamente"
         });
-        onAuthSuccess();
+        // Small delay to ensure auth state is updated
+        setTimeout(() => {
+          onAuthSuccess();
+        }, 1000);
       }
     } catch (error) {
+      console.error('Unexpected error:', error);
       toast({
         title: "Error",
         description: "Ocurrió un error inesperado al conectar la wallet",
@@ -166,7 +180,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               
               <div className="space-y-2">
                 <Button
-                  onClick={onAuthSuccess}
+                  onClick={() => {
+                    console.log('Entering game...');
+                    onAuthSuccess();
+                  }}
                   className="w-full bg-green-600 hover:bg-green-500"
                 >
                   Entrar al juego

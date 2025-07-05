@@ -36,9 +36,23 @@ const BitRushGame = () => {
   };
 
   const handleAuthSuccess = () => {
-    // Auth state will be handled by useAuth hook
-    refreshGameState();
+    console.log('Auth success callback triggered');
+    // Small delay to ensure auth state is fully updated
+    setTimeout(() => {
+      refreshGameState();
+    }, 500);
   };
+
+  // Debug logs
+  useEffect(() => {
+    console.log('BitRushGame state:', {
+      authLoading,
+      isAuthenticated,
+      gameLoading,
+      user: user?.email,
+      walletInfo
+    });
+  }, [authLoading, isAuthenticated, gameLoading, user, walletInfo]);
 
   if (authLoading) {
     return (
@@ -72,9 +86,9 @@ const BitRushGame = () => {
             <Wallet className="h-5 w-5" />
             <div className="flex flex-col">
               <span className="text-sm">Bit Rush</span>
-              {walletInfo?.isWalletUser && (
+              {walletInfo?.isWalletUser && walletInfo?.address && (
                 <span className="text-xs text-gray-400 font-mono">
-                  {walletInfo.address?.slice(0, 8)}...{walletInfo.address?.slice(-6)}
+                  {walletInfo.address.slice(0, 8)}...{walletInfo.address.slice(-6)}
                 </span>
               )}
             </div>

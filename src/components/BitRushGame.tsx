@@ -10,12 +10,12 @@ import ReferralsScreen from './game/ReferralsScreen';
 import AuthPage from './auth/AuthPage';
 import { useAuth } from '@/hooks/useAuth';
 import { useSecureGameState } from '@/hooks/useSecureGameState';
-import { Home, CreditCard, Gift, ShoppingBag, Users, LogOut } from 'lucide-react';
+import { Home, CreditCard, Gift, ShoppingBag, Users, LogOut, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const BitRushGame = () => {
   const [activeTab, setActiveTab] = useState('home');
-  const { user, loading: authLoading, signOut, isAuthenticated } = useAuth();
+  const { user, loading: authLoading, signOut, isAuthenticated, walletInfo } = useAuth();
   const { gameState, loading: gameLoading, refreshGameState } = useSecureGameState();
   const { toast } = useToast();
 
@@ -24,13 +24,13 @@ const BitRushGame = () => {
     if (error) {
       toast({
         title: "Error",
-        description: "No se pudo cerrar sesión",
+        description: "No se pudo desconectar la wallet",
         variant: "destructive"
       });
     } else {
       toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión correctamente"
+        title: "Wallet desconectada",
+        description: "Tu wallet se ha desconectado correctamente"
       });
     }
   };
@@ -43,7 +43,10 @@ const BitRushGame = () => {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-900">
-        <div className="text-cyan-400 text-xl">Cargando...</div>
+        <div className="text-cyan-400 text-xl flex items-center gap-2">
+          <Wallet className="h-6 w-6 animate-pulse" />
+          Conectando wallet...
+        </div>
       </div>
     );
   }
@@ -63,10 +66,18 @@ const BitRushGame = () => {
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-        {/* Header with user info and logout */}
+        {/* Header with wallet info and logout */}
         <div className="flex justify-between items-center p-4 border-b border-cyan-500/20">
-          <div className="text-cyan-400 font-bold">
-            Bit Rush - {user?.email}
+          <div className="flex items-center gap-2 text-cyan-400 font-bold">
+            <Wallet className="h-5 w-5" />
+            <div className="flex flex-col">
+              <span className="text-sm">Bit Rush</span>
+              {walletInfo?.isWalletUser && (
+                <span className="text-xs text-gray-400 font-mono">
+                  {walletInfo.address?.slice(0, 8)}...{walletInfo.address?.slice(-6)}
+                </span>
+              )}
+            </div>
           </div>
           <Button
             onClick={handleSignOut}
@@ -75,7 +86,7 @@ const BitRushGame = () => {
             className="text-gray-400 hover:text-white"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Salir
+            Desconectar
           </Button>
         </div>
 

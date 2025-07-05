@@ -46,9 +46,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
       const mockAddress = generateMockWalletAddress();
       setWalletAddress(mockAddress);
 
-      // Create a valid email format for Supabase using a unique identifier
-      const uniqueId = mockAddress.slice(-12); // Use last 12 chars for uniqueness
-      const walletEmail = `wallet_${uniqueId}@telegram.wallet`;
+      // Create a valid email format for Supabase using a standard domain
+      const uniqueId = mockAddress.slice(-12).toLowerCase(); // Use last 12 chars for uniqueness
+      const walletEmail = `wallet${uniqueId}@telegramwallet.com`; // Changed to valid domain
       const walletPassword = `wallet_${mockAddress.slice(-16)}`; // Use last 16 chars as password
 
       console.log('Attempting authentication with:', walletEmail);

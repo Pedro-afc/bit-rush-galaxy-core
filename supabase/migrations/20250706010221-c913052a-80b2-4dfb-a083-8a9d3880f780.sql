@@ -1,4 +1,8 @@
 
+-- Drop the existing trigger and function
+DROP TRIGGER IF EXISTS on_auth_user_created_game_data ON auth.users;
+DROP FUNCTION IF EXISTS public.initialize_game_data();
+
 -- Create a function to initialize game data for new users
 CREATE OR REPLACE FUNCTION public.initialize_game_data()
 RETURNS trigger
@@ -7,6 +11,17 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
+  -- First, create the user record in public.users table
+  INSERT INTO public.users (
+    id,
+    telegram_id,
+    username
+  ) VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data ->> 'telegram_id',
+    NEW.raw_user_meta_data ->> 'username'
+  );
+
   -- Create initial stats for new user
   INSERT INTO public.stats (
     user_id,
@@ -111,12 +126,11 @@ END;
 $$;
 
 -- Create trigger to initialize game data when a user is created
-DROP TRIGGER IF EXISTS on_auth_user_created_game_data ON auth.users;
 CREATE TRIGGER on_auth_user_created_game_data
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.initialize_game_data();
 
--- Grant necessary permissions for RLS policies to work
+-- Ensure RLS is enabled on all tables
 ALTER TABLE public.stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.floating_cards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_rewards ENABLE ROW LEVEL SECURITY;
@@ -125,25 +139,31 @@ ALTER TABLE public.achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rewards_wheel ENABLE ROW LEVEL SECURITY;
 
 -- Add INSERT policies for stats table
+DROP POLICY IF EXISTS "Users can insert their own stats" ON public.stats;
 CREATE POLICY "Users can insert their own stats" ON public.stats
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Add INSERT policies for floating_cards table
+DROP POLICY IF EXISTS "Users can insert their own floating cards" ON public.floating_cards;
 CREATE POLICY "Users can insert their own floating cards" ON public.floating_cards
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Add INSERT policies for daily_rewards table
+DROP POLICY IF EXISTS "Users can insert their own daily rewards" ON public.daily_rewards;
 CREATE POLICY "Users can insert their own daily rewards" ON public.daily_rewards
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Add INSERT policies for daily_missions table
+DROP POLICY IF EXISTS "Users can insert their own daily missions" ON public.daily_missions;
 CREATE POLICY "Users can insert their own daily missions" ON public.daily_missions
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Add INSERT policies for achievements table
+DROP POLICY IF EXISTS "Users can insert their own achievements" ON public.achievements;
 CREATE POLICY "Users can insert their own achievements" ON public.achievements
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Add INSERT policies for rewards_wheel table
+DROP POLICY IF EXISTS "Users can insert their own rewards wheel" ON public.rewards_wheel;
 CREATE POLICY "Users can insert their own rewards wheel" ON public.rewards_wheel
 FOR INSERT WITH CHECK (auth.uid() = user_id);

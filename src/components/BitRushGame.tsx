@@ -1,112 +1,89 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import HomeScreen from './game/HomeScreen';
+import MockHomeScreen from './game/MockHomeScreen';
 import CardsScreen from './game/CardsScreen';
 import RewardsScreen from './game/RewardsScreen';
 import ShopScreen from './game/ShopScreen';
 import ReferralsScreen from './game/ReferralsScreen';
-import AuthPage from './auth/AuthPage';
-import { useAuth } from '@/hooks/useAuth';
-import { useSecureGameState } from '@/hooks/useSecureGameState';
-import { Home, CreditCard, Gift, ShoppingBag, Users, LogOut, Wallet } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Home, CreditCard, Gift, ShoppingBag, Users, Wallet } from 'lucide-react';
+
+// Mock game state for development
+const mockGameState = {
+  user: { id: 'mock-user', email: 'test@example.com' },
+  stats: {
+    level: 1,
+    xp: 0,
+    energy: 100,
+    max_energy: 100,
+    coins: 0,
+    mining_rate: 1,
+    spins: 3,
+    stars: 0,
+    ton_balance: 1000.0
+  },
+  cards: [],
+  floatingCards: [
+    // Mock Explorer Stash cards
+    { id: '1', card_name: 'explorer_stash', position: 1, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 1000 },
+    { id: '2', card_name: 'explorer_stash', position: 2, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 2000 },
+    { id: '3', card_name: 'explorer_stash', position: 3, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 3000 },
+    { id: '4', card_name: 'explorer_stash', position: 4, is_unlocked: false, is_claimed: false, reward_type: 'spins', reward_amount: 2, price_ton: 2.0 },
+    // Mock Crypto Cavern cards
+    { id: '5', card_name: 'crypto_cavern', position: 1, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 2000 },
+    { id: '6', card_name: 'crypto_cavern', position: 2, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 4000 },
+    { id: '7', card_name: 'crypto_cavern', position: 3, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 6000 },
+    { id: '8', card_name: 'crypto_cavern', position: 4, is_unlocked: false, is_claimed: false, reward_type: 'spins', reward_amount: 3, price_ton: 3.0 },
+  ],
+  dailyRewards: [
+    { id: '1', day: 1, reward_type: 'coins', reward_amount: 1000, is_claimed: false },
+    { id: '2', day: 2, reward_type: 'coins', reward_amount: 2000, is_claimed: false },
+    { id: '3', day: 3, reward_type: 'coins', reward_amount: 3000, is_claimed: false },
+  ],
+  dailyMissions: [
+    { id: '1', mission_name: 'Haz 50 clics', mission_type: 'taps', target_value: 50, current_value: 0, reward_type: 'spins', reward_amount: 1, is_completed: false, is_claimed: false },
+    { id: '2', mission_name: 'Mejora 3 cartas', mission_type: 'upgrades', target_value: 3, current_value: 0, reward_type: 'spins', reward_amount: 1, is_completed: false, is_claimed: false },
+  ],
+  achievements: [
+    { id: '1', achievement_name: 'Primer Nivel', achievement_description: 'Alcanza el nivel 5', target_value: 5, current_value: 0, reward_type: 'spins', reward_amount: 2, is_completed: false, is_claimed: false },
+    { id: '2', achievement_name: 'Millonario', achievement_description: 'Acumula 100,000 monedas', target_value: 100000, current_value: 0, reward_type: 'spins', reward_amount: 5, is_completed: false, is_claimed: false },
+  ],
+  shopItems: [],
+  rewardsWheel: { id: '1', spins_used: 0, total_rewards_claimed: 0 }
+};
 
 const BitRushGame = () => {
   const [activeTab, setActiveTab] = useState('home');
-  const { user, loading: authLoading, signOut, isAuthenticated, walletInfo } = useAuth();
-  const { gameState, loading: gameLoading, refreshGameState } = useSecureGameState();
-  const { toast } = useToast();
+  const [gameState, setGameState] = useState(mockGameState);
 
-  const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo desconectar la wallet",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Wallet desconectada",
-        description: "Tu wallet se ha desconectado correctamente"
-      });
-    }
+  const refreshGameState = () => {
+    console.log('Refreshing game state (mock mode)');
+    // In mock mode, just log that refresh was called
   };
-
-  const handleAuthSuccess = () => {
-    console.log('Auth success - triggering game state refresh');
-    // Refresh game state after successful authentication
-    setTimeout(() => {
-      refreshGameState();
-    }, 1000);
-  };
-
-  // Debug logs
-  useEffect(() => {
-    console.log('BitRushGame state:', {
-      authLoading,
-      isAuthenticated,
-      gameLoading,
-      user: user?.email,
-      walletInfo,
-      hasStats: !!gameState.stats
-    });
-  }, [authLoading, isAuthenticated, gameLoading, user, walletInfo, gameState.stats]);
-
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-900">
-        <div className="text-cyan-400 text-xl flex items-center gap-2">
-          <Wallet className="h-6 w-6 animate-pulse" />
-          Conectando wallet...
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
-  }
-
-  if (gameLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-900">
-        <div className="text-cyan-400 text-xl">Cargando Bit Rush...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-        {/* Header with wallet info and logout */}
+        {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-cyan-500/20">
           <div className="flex items-center gap-2 text-cyan-400 font-bold">
             <Wallet className="h-5 w-5" />
             <div className="flex flex-col">
               <span className="text-sm">Bit Rush</span>
-              {walletInfo?.isWalletUser && walletInfo?.address && (
-                <span className="text-xs text-gray-400 font-mono">
-                  {walletInfo.address.slice(0, 8)}...{walletInfo.address.slice(-6)}
-                </span>
-              )}
+              <span className="text-xs text-gray-400 font-mono">
+                Modo desarrollo
+              </span>
             </div>
           </div>
-          <Button
-            onClick={handleSignOut}
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Desconectar
-          </Button>
+          <div className="text-xs text-gray-400">
+            Mock Mode
+          </div>
         </div>
 
         <div className="flex-1 overflow-hidden">
           <TabsContent value="home" className="h-full m-0">
-            <HomeScreen gameState={gameState} />
+            <MockHomeScreen gameState={gameState} />
           </TabsContent>
           <TabsContent value="cards" className="h-full m-0">
             <CardsScreen gameState={gameState} refreshGameState={refreshGameState} />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -36,11 +35,11 @@ const BitRushGame = () => {
   };
 
   const handleAuthSuccess = () => {
-    console.log('Auth success callback triggered');
-    // Small delay to ensure auth state is fully updated
+    console.log('Auth success - triggering game state refresh');
+    // Refresh game state after successful authentication
     setTimeout(() => {
       refreshGameState();
-    }, 500);
+    }, 1000);
   };
 
   // Debug logs
@@ -50,9 +49,10 @@ const BitRushGame = () => {
       isAuthenticated,
       gameLoading,
       user: user?.email,
-      walletInfo
+      walletInfo,
+      hasStats: !!gameState.stats
     });
-  }, [authLoading, isAuthenticated, gameLoading, user, walletInfo]);
+  }, [authLoading, isAuthenticated, gameLoading, user, walletInfo, gameState.stats]);
 
   if (authLoading) {
     return (

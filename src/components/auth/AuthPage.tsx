@@ -13,7 +13,6 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
 
   // Check if user is already logged in
@@ -87,11 +86,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           });
         } else if (data.user) {
           console.log('User created successfully:', data.user.email);
-          setIsConnected(true);
           toast({
             title: "¡Wallet conectada!",
             description: "Tu wallet de Telegram se ha conectado exitosamente"
           });
+          // Trigger auth success callback after successful registration
+          setTimeout(() => {
+            onAuthSuccess();
+          }, 1500);
         }
       } else if (signInError) {
         console.error('Signin error:', signInError);
@@ -102,11 +104,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         });
       } else {
         console.log('User signed in successfully');
-        setIsConnected(true);
         toast({
           title: "¡Bienvenido de vuelta!",
           description: "Tu wallet de Telegram se ha conectado exitosamente"
         });
+        // Trigger auth success callback after successful sign-in
+        setTimeout(() => {
+          onAuthSuccess();
+        }, 1500);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -120,14 +125,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     }
   };
 
-  const handleEnterGame = () => {
-    console.log('Entering game directly...');
-    onAuthSuccess();
-  };
-
   const handleDisconnectWallet = () => {
     setWalletAddress('');
-    setIsConnected(false);
   };
 
   return (
@@ -183,13 +182,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               </div>
               
               <div className="space-y-2">
-                <Button
-                  onClick={handleEnterGame}
-                  className="w-full bg-green-600 hover:bg-green-500"
-                  disabled={!isConnected}
-                >
-                  {isConnected ? 'Entrar al juego' : 'Completando conexión...'}
-                </Button>
+                <div className="text-center text-cyan-400 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                  Iniciando juego...
+                </div>
                 
                 <Button
                   onClick={handleDisconnectWallet}

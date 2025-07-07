@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface GameState {
   user: any;
@@ -38,21 +38,22 @@ export const useGameState = () => {
     }
 
     try {
-      // Get user data from public.users table
+      // Get user data from profiles table (using telegram_id as wallet address)
       let { data: userData } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('telegram_id', user.address)
         .single();
 
       if (!userData) {
         // Create user record if it doesn't exist
         const { data: newUser, error: userError } = await supabase
-          .from('users')
+          .from('profiles')
           .insert({
             id: user.id,
-            telegram_id: user.user_metadata?.telegram_id || user.email,
-            username: user.user_metadata?.username || `User_${user.id.slice(-8)}`
+            telegram_id: user.address,
+            username: user.username || `User_${user.address.slice(-8)}`,
+            referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
           })
           .select()
           .single();
@@ -69,7 +70,7 @@ export const useGameState = () => {
       let { data: stats } = await supabase
         .from('stats')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userData.id)
         .single();
 
       if (!stats) {
@@ -77,7 +78,7 @@ export const useGameState = () => {
         const { data: newStats, error: statsError } = await supabase
           .from('stats')
           .insert({
-            user_id: user.id,
+            user_id: userData.id,
             level: 1,
             xp: 0,
             energy: 100,
@@ -109,13 +110,13 @@ export const useGameState = () => {
         { data: shopItems },
         { data: rewardsWheel }
       ] = await Promise.all([
-        supabase.from('cards').select('*').eq('user_id', user.id),
-        supabase.from('floating_cards').select('*').eq('user_id', user.id).order('card_name, position'),
-        supabase.from('daily_rewards').select('*').eq('user_id', user.id).order('day'),
-        supabase.from('daily_missions').select('*').eq('user_id', user.id),
-        supabase.from('achievements').select('*').eq('user_id', user.id),
-        supabase.from('shop_items').select('*').eq('user_id', user.id),
-        supabase.from('rewards_wheel').select('*').eq('user_id', user.id).single()
+        supabase.from('cards').select('*').eq('user_id', userData.id),
+        supabase.from('floating_cards').select('*').eq('user_id', userData.id).order('card_name, position'),
+        supabase.from('daily_rewards').select('*').eq('user_id', userData.id).order('day'),
+        supabase.from('daily_missions').select('*').eq('user_id', userData.id),
+        supabase.from('achievements').select('*').eq('user_id', userData.id),
+        supabase.from('shop_items').select('*').eq('user_id', userData.id),
+        supabase.from('rewards_wheel').select('*').eq('user_id', userData.id).single()
       ]);
 
       setGameState({
@@ -142,6 +143,8 @@ export const useGameState = () => {
   };
 
   const updateStats = async (updates: Partial<any>) => {
+    if (!gameState.user) return;
+    
     try {
       const { data, error } = await supabase
         .from('stats')
@@ -221,7 +224,13 @@ export const useGameState = () => {
     }
   };
 
+  const refreshGameState = () => {
+    loadGameData();
+  };
+
   const refreshFloatingCards = async () => {
+    if (!gameState.user) return;
+    
     try {
       const { data: floatingCards } = await supabase
         .from('floating_cards')
@@ -248,7 +257,7 @@ export const useGameState = () => {
     updateStats,
     updateMissionProgress,
     updateAchievementProgress,
-    refreshGameState: loadGameData,
+    refreshGameState,
     refreshFloatingCards
   };
 };

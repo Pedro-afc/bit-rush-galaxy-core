@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Zap, Coins, Star, Pickaxe } from 'lucide-react';
+import { useGameState } from '@/hooks/useGameState';
 
 interface MockHomeScreenProps {
   gameState: any;
@@ -10,6 +11,26 @@ interface MockHomeScreenProps {
 const MockHomeScreen: React.FC<MockHomeScreenProps> = ({ gameState }) => {
   const [localStats, setLocalStats] = useState(gameState.stats);
   const [tapCount, setTapCount] = useState(0);
+  const { updateStats } = useGameState();
+
+  // Sincronizar con el estado global cuando cambie
+  useEffect(() => {
+    setLocalStats(gameState.stats);
+  }, [gameState.stats]);
+
+  // Sistema de regeneración de energía
+  useEffect(() => {
+    const energyInterval = setInterval(() => {
+      if (localStats.energy < localStats.max_energy) {
+        setLocalStats(prev => ({
+          ...prev,
+          energy: Math.min(prev.max_energy, prev.energy + 1)
+        }));
+      }
+    }, 6000); // Regenera 1 energía cada 6 segundos
+
+    return () => clearInterval(energyInterval);
+  }, [localStats.energy, localStats.max_energy]);
 
   const handleTap = () => {
     if (localStats.energy <= 0) {
@@ -23,14 +44,23 @@ const MockHomeScreen: React.FC<MockHomeScreenProps> = ({ gameState }) => {
     const coinsGained = localStats.mining_rate;
     const xpGain = Math.floor(localStats.mining_rate * 0.1);
 
-    setLocalStats(prev => ({
-      ...prev,
-      coins: prev.coins + coinsGained,
-      energy: Math.max(0, prev.energy - 1),
-      xp: prev.xp + xpGain
-    }));
+    const newStats = {
+      ...localStats,
+      coins: localStats.coins + coinsGained,
+      energy: Math.max(0, localStats.energy - 1),
+      xp: localStats.xp + xpGain
+    };
 
-    console.log(`Tap ${newTapCount}: +${coinsGained} coins, +${xpGain} XP`);
+    setLocalStats(newStats);
+
+    // Actualizar el estado global
+    updateStats({
+      coins: newStats.coins,
+      energy: newStats.energy,
+      xp: newStats.xp
+    });
+
+    console.log(`Tap ${newTapCount}: +${coinsGained} coins, +${xpGain} XP, Energy: ${newStats.energy}`);
   };
 
   const calculateLevel = (xp: number) => {

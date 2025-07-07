@@ -28,26 +28,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Verificar autenticación al cargar
   useEffect(() => {
+    if (isInitialized) return;
+    
     const checkAuth = () => {
-      const savedUser = localStorage.getItem('bitrush_user');
-      if (savedUser) {
-        try {
+      try {
+        const savedUser = localStorage.getItem('bitrush_user');
+        if (savedUser) {
           const userData = JSON.parse(savedUser);
           setUser(userData);
-        } catch (error) {
-          console.error('Error parsing saved user:', error);
-          localStorage.removeItem('bitrush_user');
         }
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+        localStorage.removeItem('bitrush_user');
+      } finally {
+        setIsInitialized(true);
       }
     };
 
     checkAuth();
-  }, []);
+  }, [isInitialized]);
 
   const authenticate = async (address: string) => {
+    if (isLoading) return; // Evitar múltiples llamadas
+    
     setIsLoading(true);
     
     try {
@@ -92,15 +99,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('bitrush_user');
-    setUser(null);
-    disconnect();
-    
-    toast({
-      title: 'Sesión cerrada',
-      description: 'Has cerrado sesión correctamente',
-    });
+    try {
+      localStorage.removeItem('bitrush_user');
+      setUser(null);
+      disconnect();
+      
+      toast({
+        title: 'Sesión cerrada',
+        description: 'Has cerrado sesión correctamente',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
+
+  // Solo renderizar cuando esté inicializado
+  if (!isInitialized) {
+    return <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="text-cyan-400">Cargando...</div>
+    </div>;
+  }
 
   const value: AuthContextType = {
     user,

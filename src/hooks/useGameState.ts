@@ -31,7 +31,7 @@ const defaultStats = {
 export const useGameState = () => {
   const [gameState, setGameState] = useState<GameState>({
     user: null,
-    stats: defaultStats, // Usar stats por defecto
+    stats: defaultStats,
     cards: [],
     floatingCards: [],
     dailyRewards: [],
@@ -51,41 +51,106 @@ export const useGameState = () => {
     }
 
     try {
-      // Por ahora, usar datos simulados para evitar problemas de base de datos
-      const simulatedUser = {
-        id: user.id,
-        telegram_id: user.address,
-        username: user.username || `User_${user.address.slice(-8)}`,
-        referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
-      };
+      console.log('Loading game data for user:', user.id);
+      
+      // Cargar datos reales desde la base de datos
+      const [
+        { data: userProfile, error: userError },
+        { data: stats, error: statsError },
+        { data: cards, error: cardsError },
+        { data: floatingCards, error: floatingCardsError },
+        { data: dailyRewards, error: dailyRewardsError },
+        { data: dailyMissions, error: dailyMissionsError },
+        { data: achievements, error: achievementsError },
+        { data: shopItems, error: shopItemsError },
+        { data: rewardsWheel, error: rewardsWheelError }
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('stats').select('*').eq('user_id', user.id).single(),
+        supabase.from('cards').select('*').eq('user_id', user.id),
+        supabase.from('floating_cards').select('*').eq('user_id', user.id).order('card_name, position'),
+        supabase.from('daily_rewards').select('*').eq('user_id', user.id).order('day'),
+        supabase.from('daily_missions').select('*').eq('user_id', user.id),
+        supabase.from('achievements').select('*').eq('user_id', user.id),
+        supabase.from('shop_items').select('*').eq('user_id', user.id),
+        supabase.from('rewards_wheel').select('*').eq('user_id', user.id).single()
+      ]);
 
-      const simulatedStats = {
-        ...defaultStats,
-        user_id: user.id
-      };
+      // Manejar errores
+      if (userError) console.error('Error loading user profile:', userError);
+      if (statsError) console.error('Error loading stats:', statsError);
+      if (cardsError) console.error('Error loading cards:', cardsError);
+      if (floatingCardsError) console.error('Error loading floating cards:', floatingCardsError);
+      if (dailyRewardsError) console.error('Error loading daily rewards:', dailyRewardsError);
+      if (dailyMissionsError) console.error('Error loading daily missions:', dailyMissionsError);
+      if (achievementsError) console.error('Error loading achievements:', achievementsError);
+      if (shopItemsError) console.error('Error loading shop items:', shopItemsError);
+      if (rewardsWheelError) console.error('Error loading rewards wheel:', rewardsWheelError);
 
-      // Simular datos del juego
-      const simulatedCards = [];
-      const simulatedFloatingCards = [];
-      const simulatedDailyRewards = [];
-      const simulatedDailyMissions = [];
-      const simulatedAchievements = [];
-      const simulatedShopItems = [];
-      const simulatedRewardsWheel = null;
+      // Si no hay stats, crear stats iniciales
+      let userStats = stats;
+      if (!stats && !statsError) {
+        console.log('Creating initial stats for user');
+        const { data: newStats, error: createStatsError } = await supabase
+          .from('stats')
+          .insert({
+            user_id: user.id,
+            ...defaultStats
+          })
+          .select()
+          .single();
+
+        if (createStatsError) {
+          console.error('Error creating initial stats:', createStatsError);
+          userStats = defaultStats;
+        } else {
+          userStats = newStats;
+        }
+      }
+
+      // Si no hay rewards wheel, crear uno inicial
+      let userRewardsWheel = rewardsWheel;
+      if (!rewardsWheel && !rewardsWheelError) {
+        console.log('Creating initial rewards wheel for user');
+        const { data: newRewardsWheel, error: createWheelError } = await supabase
+          .from('rewards_wheel')
+          .insert({
+            user_id: user.id,
+            spins_used: 0,
+            total_rewards_claimed: 0
+          })
+          .select()
+          .single();
+
+        if (createWheelError) {
+          console.error('Error creating initial rewards wheel:', createWheelError);
+        } else {
+          userRewardsWheel = newRewardsWheel;
+        }
+      }
 
       setGameState({
-        user: simulatedUser,
-        stats: simulatedStats,
-        cards: simulatedCards,
-        floatingCards: simulatedFloatingCards,
-        dailyRewards: simulatedDailyRewards,
-        dailyMissions: simulatedDailyMissions,
-        achievements: simulatedAchievements,
-        shopItems: simulatedShopItems,
-        rewardsWheel: simulatedRewardsWheel
+        user: userProfile || {
+          id: user.id,
+          telegram_id: user.address,
+          username: user.username || `User_${user.address.slice(-8)}`,
+          referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        },
+        stats: userStats || defaultStats,
+        cards: cards || [],
+        floatingCards: floatingCards || [],
+        dailyRewards: dailyRewards || [],
+        dailyMissions: dailyMissions || [],
+        achievements: achievements || [],
+        shopItems: shopItems || [],
+        rewardsWheel: userRewardsWheel
       });
 
-      console.log('Game data loaded successfully with simulated data');
+      console.log('Game data loaded successfully:', { 
+        user: userProfile?.username, 
+        stats: userStats, 
+        floatingCards: floatingCards?.length || 0 
+      });
 
     } catch (error) {
       console.error('Error loading game data:', error);
@@ -114,7 +179,7 @@ export const useGameState = () => {
   };
 
   const updateStats = async (updates: Partial<any>) => {
-    if (!gameState.user) return;
+    if (!gameState.user || !user) return;
     
     try {
       // Actualizar estado local inmediatamente
@@ -127,8 +192,22 @@ export const useGameState = () => {
         };
       });
 
-      // TODO: Implementar actualización en base de datos cuando esté lista
-      console.log('Stats updated locally:', updates);
+      // Actualizar en la base de datos
+      const { error } = await supabase
+        .from('stats')
+        .update(updates)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error updating stats in database:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo guardar el progreso",
+          variant: "destructive"
+        });
+      } else {
+        console.log('Stats updated in database:', updates);
+      }
     } catch (error) {
       console.error('Error updating stats:', error);
     }
@@ -151,6 +230,19 @@ export const useGameState = () => {
             : m
         )
       }));
+
+      // Update in database
+      const { error } = await supabase
+        .from('daily_missions')
+        .update({ 
+          current_value: newValue, 
+          is_completed: isCompleted 
+        })
+        .eq('id', mission.id);
+
+      if (error) {
+        console.error('Error updating mission progress:', error);
+      }
     } catch (error) {
       console.error('Error updating mission progress:', error);
     }
@@ -173,6 +265,19 @@ export const useGameState = () => {
             : a
         )
       }));
+
+      // Update in database
+      const { error } = await supabase
+        .from('achievements')
+        .update({ 
+          current_value: newValue, 
+          is_completed: isCompleted 
+        })
+        .eq('id', achievement.id);
+
+      if (error) {
+        console.error('Error updating achievement progress:', error);
+      }
     } catch (error) {
       console.error('Error updating achievement progress:', error);
     }
@@ -186,8 +291,20 @@ export const useGameState = () => {
     if (!gameState.user) return;
     
     try {
-      // Por ahora, solo actualizar estado local
-      console.log('Refreshing floating cards...');
+      const { data: floatingCards, error } = await supabase
+        .from('floating_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('card_name, position');
+
+      if (error) {
+        console.error('Error refreshing floating cards:', error);
+      } else {
+        setGameState(prev => ({
+          ...prev,
+          floatingCards: floatingCards || []
+        }));
+      }
     } catch (error) {
       console.error('Error refreshing floating cards:', error);
     }

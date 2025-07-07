@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface User {
   id: string;
@@ -58,25 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
-      // Generar mensaje único para firmar
-      const timestamp = Date.now();
-      const nonce = Math.random().toString(36).substring(2, 15);
-      const message = `Bit Rush Galaxy Authentication\n\nWallet: ${address}\nTimestamp: ${timestamp}\nNonce: ${nonce}\n\nSign this message to authenticate your wallet.`;
+      console.log('Authenticating wallet:', address);
 
-      console.log('Message to sign:', message);
-
-      // Simular autenticación exitosa
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Crear usuario simulado
+      // Generar un UUID válido para el usuario
+      const userId = crypto.randomUUID();
+      
+      // Crear usuario con UUID válido
       const userData: User = {
-        id: `user_${address.slice(-8)}`,
+        id: userId, // UUID válido para la base de datos
         address: address,
         username: `User_${address.slice(-8)}`,
         isAuthenticated: true,
       };
 
-      // Guardar en localStorage
+      // Guardar usuario en localStorage
       localStorage.setItem('bitrush_user', JSON.stringify(userData));
       setUser(userData);
 

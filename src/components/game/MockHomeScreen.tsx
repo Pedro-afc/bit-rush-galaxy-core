@@ -42,7 +42,7 @@ const MockHomeScreen: React.FC<MockHomeScreenProps> = ({ gameState }) => {
 
     // Update local stats immediately for responsive UI
     const coinsGained = localStats.mining_rate;
-    const xpGain = Math.floor(localStats.mining_rate * 0.1);
+    const xpGain = Math.max(1, Math.floor(localStats.mining_rate * 0.5)); // Mínimo 1 XP, máximo 50% del mining_rate
 
     const newStats = {
       ...localStats,
@@ -53,14 +53,14 @@ const MockHomeScreen: React.FC<MockHomeScreenProps> = ({ gameState }) => {
 
     setLocalStats(newStats);
 
-    // Actualizar el estado global
+    // Actualizar el estado global inmediatamente
     updateStats({
       coins: newStats.coins,
       energy: newStats.energy,
       xp: newStats.xp
     });
 
-    console.log(`Tap ${newTapCount}: +${coinsGained} coins, +${xpGain} XP, Energy: ${newStats.energy}`);
+    console.log(`Tap ${newTapCount}: +${coinsGained} coins, +${xpGain} XP, Energy: ${newStats.energy}, Total XP: ${newStats.xp}`);
   };
 
   const calculateLevel = (xp: number) => {

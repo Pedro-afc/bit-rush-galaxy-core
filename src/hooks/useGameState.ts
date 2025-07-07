@@ -117,11 +117,15 @@ export const useGameState = () => {
     if (!gameState.user) return;
     
     try {
-      // Actualizar estado local
-      setGameState(prev => ({
-        ...prev,
-        stats: { ...prev.stats, ...updates }
-      }));
+      // Actualizar estado local inmediatamente
+      setGameState(prev => {
+        const newStats = { ...prev.stats, ...updates };
+        console.log('Updating game state:', { old: prev.stats, new: newStats, updates });
+        return {
+          ...prev,
+          stats: newStats
+        };
+      });
 
       // TODO: Implementar actualización en base de datos cuando esté lista
       console.log('Stats updated locally:', updates);

@@ -4,11 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Wallet, Loader2, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface AuthPageProps {
-  onAuthSuccess: () => void;
-}
-
-const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
+const AuthPage: React.FC = () => {
   const { 
     user, 
     isAuthenticated, 
@@ -26,8 +22,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     
     try {
       await authenticate(address);
-      // El contexto maneja el toast de éxito
-      setTimeout(() => onAuthSuccess(), 1500);
+      // El contexto maneja automáticamente el estado de autenticación
     } catch (error) {
       // El contexto maneja el toast de error
     }
@@ -85,19 +80,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                     <div className="text-center text-green-400 text-sm">
                       ✅ Wallet autenticada
                     </div>
-                    <Button
-                      onClick={onAuthSuccess}
-                      className="w-full bg-green-600 hover:bg-green-500 text-white"
-                    >
-                      Continuar al Juego
-                    </Button>
-                    <Button
-                      onClick={logout}
-                      variant="outline"
-                      className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
-                    >
-                      Cerrar Sesión
-                    </Button>
+                    <div className="text-center text-cyan-400 text-sm">
+                      ¡Redirigiendo al juego...
+                    </div>
                   </div>
                 ) : (
                   <>

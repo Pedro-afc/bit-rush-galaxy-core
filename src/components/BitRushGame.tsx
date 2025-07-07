@@ -8,14 +8,13 @@ import ShopScreen from './game/ShopScreen';
 import ReferralsScreen from './game/ReferralsScreen';
 import { Home, CreditCard, Gift, ShoppingBag, Users, Wallet } from 'lucide-react';
 import { useGameState } from '@/hooks/useGameState';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import AuthPage from './auth/AuthPage';
 
 const BitRushGame = () => {
   const [activeTab, setActiveTab] = useState('home');
   const { gameState, loading, refreshGameState } = useGameState();
-  const { user, isAuthenticated, signOut } = useAuth();
-  const [authSuccess, setAuthSuccess] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Show loading state while game data is being loaded
   if (loading) {
@@ -30,8 +29,8 @@ const BitRushGame = () => {
   }
 
   // Mostrar AuthPage si no está autenticado
-  if (!isAuthenticated || !user || !authSuccess) {
-    return <AuthPage onAuthSuccess={() => setAuthSuccess(true)} />;
+  if (!isAuthenticated || !user) {
+    return <AuthPage onAuthSuccess={() => {}} />;
   }
 
   return (
@@ -44,7 +43,7 @@ const BitRushGame = () => {
             <div className="flex flex-col">
               <span className="text-sm">Bit Rush</span>
               <span className="text-xs text-gray-400 font-mono">
-                Conectado
+                {user.address ? `${user.address.slice(0, 6)}...${user.address.slice(-4)}` : 'Conectado'}
               </span>
             </div>
           </div>
@@ -55,7 +54,7 @@ const BitRushGame = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={signOut}
+              onClick={logout}
               className="text-xs border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
             >
               Desconectar

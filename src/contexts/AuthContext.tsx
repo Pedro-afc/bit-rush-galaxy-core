@@ -40,7 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const savedUser = localStorage.getItem('bitrush_user');
         if (savedUser) {
           const userData = JSON.parse(savedUser);
-          setUser(userData);
+          
+          // Verificar si el ID es un UUID válido
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(userData.id)) {
+            console.log('Invalid user ID found, clearing localStorage');
+            localStorage.removeItem('bitrush_user');
+            setUser(null);
+          } else {
+            setUser(userData);
+          }
         }
       } catch (error) {
         console.error('Error parsing saved user:', error);

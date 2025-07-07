@@ -1,0 +1,14 @@
+# Copia este contenido a tu archivo .env.local
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://dblqpqylmuslybhskjqv.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# Supabase Service Role Key (for backend operations)
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+
+# JWT Secret for token generation
+JWT_SECRET=your_super_secret_jwt_key_here_make_it_long_and_random
+
+# TON Connect Configuration
+NEXT_PUBLIC_TON_CONNECT_MANIFEST_URL=https://bit-rush-galaxy-core.lovable.app/tonconnect-manifest.json 

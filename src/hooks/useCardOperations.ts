@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +14,7 @@ interface Card {
 }
 
 export const useCardOperations = (gameState: any, refreshGameState: () => void) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [timers, setTimers] = useState<{[key: string]: number}>({});
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -73,7 +72,14 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
   }, [gameState.cards]);
 
   const upgradeCard = async (card: Card, type: string) => {
-    if (!user) return;
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "No autenticado",
+        description: "Debes conectar tu wallet para mejorar cartas",
+        variant: "destructive"
+      });
+      return;
+    }
     
     const { stats } = gameState;
     
@@ -185,7 +191,14 @@ export const useCardOperations = (gameState: any, refreshGameState: () => void) 
   };
 
   const skipTimer = async (cardName: string) => {
-    if (!user) return;
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "No autenticado",
+        description: "Debes conectar tu wallet para saltar timers",
+        variant: "destructive"
+      });
+      return;
+    }
     
     const { stats } = gameState;
     const starsRequired = 10; // Cost to skip timer

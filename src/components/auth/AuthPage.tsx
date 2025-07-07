@@ -1,133 +1,103 @@
-
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 import { Wallet, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useTonConnect } from '@/hooks/useTonConnect';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
   const { toast } = useToast();
+  const { connect, disconnect, address, connecting, isConnected } = useTonConnect();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if user is already logged in
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('User already authenticated, entering game...');
-        onAuthSuccess();
-      }
-    };
-    checkUser();
-  }, [onAuthSuccess]);
-
-  const generateMockWalletAddress = () => {
-    // Generate a mock TON wallet address (more realistic format)
-    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    let address = 'UQ';
-    for (let i = 0; i < 46; i++) {
-      address += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return address;
-  };
-
-  const handleConnectWallet = async () => {
-    setIsLoading(true);
-
-    try {
-      // Simulate wallet connection delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    const tryLogin = async () => {
+      if (!address || isProcessing) return;
       
-      const mockAddress = generateMockWalletAddress();
-      setWalletAddress(mockAddress);
+      setIsProcessing(true);
+      console.log('Attempting login with address:', address);
+      
+      try {
+        // Usar la address real como email único
+        const walletEmail = `wallet${address.toLowerCase()}@telegramwallet.com`;
+        const walletPassword = `wallet_${address.slice(-16)}`;
 
-      // Create a valid email format for Supabase using a standard domain
-      const uniqueId = mockAddress.slice(-12).toLowerCase(); // Use last 12 chars for uniqueness
-      const walletEmail = `wallet${uniqueId}@telegramwallet.com`; // Changed to valid domain
-      const walletPassword = `wallet_${mockAddress.slice(-16)}`; // Use last 16 chars as password
+        console.log('Using email:', walletEmail);
 
-      console.log('Attempting authentication with:', walletEmail);
-
-      // Try to sign in first, if it fails, sign up
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: walletEmail,
-        password: walletPassword,
-      });
-
-      if (signInError && signInError.message.includes('Invalid login credentials')) {
-        // User doesn't exist, create new account
-        console.log('Creating new user account...');
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        // Intentar login o registro
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: walletEmail,
           password: walletPassword,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              username: `User_${mockAddress.slice(-8)}`,
-              telegram_id: mockAddress,
-              wallet_address: mockAddress,
-              is_wallet_user: true
+        });
+
+        if (signInError && signInError.message.includes('Invalid login credentials')) {
+          console.log('User not found, creating new account...');
+          // Registrar usuario
+          const { data, error: signUpError } = await supabase.auth.signUp({
+            email: walletEmail,
+            password: walletPassword,
+            options: {
+              emailRedirectTo: `${window.location.origin}/`,
+              data: {
+                username: `User_${address.slice(-8)}`,
+                telegram_id: address,
+                wallet_address: address,
+                is_wallet_user: true
+              }
             }
+          });
+          
+          if (signUpError) {
+            console.error('Signup error:', signUpError);
+            toast({
+              title: 'Error de registro',
+              description: signUpError.message,
+              variant: 'destructive'
+            });
+          } else if (data.user) {
+            console.log('User created successfully');
+            toast({
+              title: '¡Wallet conectada!',
+              description: 'Tu wallet TON se ha conectado exitosamente'
+            });
+            setTimeout(() => onAuthSuccess(), 1500);
           }
-        });
-
-        if (signUpError) {
-          console.error('Signup error:', signUpError);
+        } else if (signInError) {
+          console.error('Signin error:', signInError);
           toast({
-            title: "Error de registro",
-            description: signUpError.message,
-            variant: "destructive"
+            title: 'Error de conexión',
+            description: signInError.message,
+            variant: 'destructive'
           });
-        } else if (data.user) {
-          console.log('User created successfully:', data.user.email);
+        } else {
+          console.log('User signed in successfully');
           toast({
-            title: "¡Wallet conectada!",
-            description: "Tu wallet de Telegram se ha conectado exitosamente"
+            title: '¡Bienvenido de vuelta!',
+            description: 'Tu wallet TON se ha conectado exitosamente'
           });
-          // Trigger auth success callback after successful registration
-          setTimeout(() => {
-            onAuthSuccess();
-          }, 1500);
+          setTimeout(() => onAuthSuccess(), 1500);
         }
-      } else if (signInError) {
-        console.error('Signin error:', signInError);
+      } catch (error) {
+        console.error('Unexpected error:', error);
         toast({
-          title: "Error de conexión",
-          description: signInError.message,
-          variant: "destructive"
+          title: 'Error inesperado',
+          description: 'Ocurrió un error durante la conexión',
+          variant: 'destructive'
         });
-      } else {
-        console.log('User signed in successfully');
-        toast({
-          title: "¡Bienvenido de vuelta!",
-          description: "Tu wallet de Telegram se ha conectado exitosamente"
-        });
-        // Trigger auth success callback after successful sign-in
-        setTimeout(() => {
-          onAuthSuccess();
-        }, 1500);
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast({
-        title: "Error",
-        description: "Ocurrió un error inesperado al conectar la wallet",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+    };
+    
+    if (isConnected && address) {
+      tryLogin();
     }
-  };
-
-  const handleDisconnectWallet = () => {
-    setWalletAddress('');
-  };
+  }, [isConnected, address, onAuthSuccess, toast, isProcessing]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
@@ -138,25 +108,24 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             Bit Rush
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Conecta tu wallet de Telegram para empezar a minar
+            Conecta tu wallet TON para empezar a minar
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {!walletAddress ? (
+          {!isConnected ? (
             <div className="space-y-4">
               <div className="text-center text-gray-300 text-sm">
-                <p>Para acceder al juego, conecta tu wallet de Telegram</p>
+                <p>Para acceder al juego, conecta tu wallet oficial de TON</p>
                 <p className="text-xs text-gray-500 mt-2">
-                  (Versión de prueba - se generará una wallet simulada)
+                  (Solo wallets oficiales: Tonkeeper, MyTonWallet, Telegram, etc.)
                 </p>
               </div>
-              
               <Button
-                onClick={handleConnectWallet}
+                onClick={connect}
                 className="w-full bg-cyan-600 hover:bg-cyan-500 text-white"
-                disabled={isLoading}
+                disabled={connecting}
               >
-                {isLoading ? (
+                {connecting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Conectando wallet...
@@ -164,7 +133,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 ) : (
                   <>
                     <Wallet className="mr-2 h-4 w-4" />
-                    Conectar Wallet de Telegram
+                    Conectar Wallet TON
                   </>
                 )}
               </Button>
@@ -176,28 +145,28 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 <div className="bg-gray-700/50 p-3 rounded-lg">
                   <p className="text-xs text-gray-400 mb-1">Dirección de wallet:</p>
                   <p className="text-xs text-cyan-400 font-mono break-all">
-                    {walletAddress}
+                    {address}
                   </p>
                 </div>
               </div>
-              
               <div className="space-y-2">
-                <div className="text-center text-cyan-400 text-sm">
-                  <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                  Iniciando juego...
-                </div>
-                
-                <Button
-                  onClick={handleDisconnectWallet}
-                  variant="outline"
-                  className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
-                >
-                  Desconectar wallet
-                </Button>
+                {isProcessing ? (
+                  <div className="text-center text-cyan-400 text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                    Iniciando juego...
+                  </div>
+                ) : (
+                  <Button
+                    onClick={disconnect}
+                    variant="outline"
+                    className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    Desconectar wallet
+                  </Button>
+                )}
               </div>
             </div>
           )}
-          
           <div className="text-xs text-gray-500 text-center">
             <p>Bit Rush utiliza la blockchain de TON</p>
             <p>para transacciones seguras y descentralizadas</p>

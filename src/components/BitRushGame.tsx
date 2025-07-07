@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import MockHomeScreen from './game/MockHomeScreen';
@@ -8,59 +7,32 @@ import RewardsScreen from './game/RewardsScreen';
 import ShopScreen from './game/ShopScreen';
 import ReferralsScreen from './game/ReferralsScreen';
 import { Home, CreditCard, Gift, ShoppingBag, Users, Wallet } from 'lucide-react';
-
-// Mock game state for development
-const mockGameState = {
-  user: { id: 'mock-user', email: 'test@example.com' },
-  stats: {
-    level: 1,
-    xp: 0,
-    energy: 100,
-    max_energy: 100,
-    coins: 0,
-    mining_rate: 1,
-    spins: 3,
-    stars: 0,
-    ton_balance: 1000.0
-  },
-  cards: [],
-  floatingCards: [
-    // Mock Explorer Stash cards
-    { id: '1', card_name: 'explorer_stash', position: 1, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 1000 },
-    { id: '2', card_name: 'explorer_stash', position: 2, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 2000 },
-    { id: '3', card_name: 'explorer_stash', position: 3, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 3000 },
-    { id: '4', card_name: 'explorer_stash', position: 4, is_unlocked: false, is_claimed: false, reward_type: 'spins', reward_amount: 2, price_ton: 2.0 },
-    // Mock Crypto Cavern cards
-    { id: '5', card_name: 'crypto_cavern', position: 1, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 2000 },
-    { id: '6', card_name: 'crypto_cavern', position: 2, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 4000 },
-    { id: '7', card_name: 'crypto_cavern', position: 3, is_unlocked: true, is_claimed: false, reward_type: 'coins', reward_amount: 6000 },
-    { id: '8', card_name: 'crypto_cavern', position: 4, is_unlocked: false, is_claimed: false, reward_type: 'spins', reward_amount: 3, price_ton: 3.0 },
-  ],
-  dailyRewards: [
-    { id: '1', day: 1, reward_type: 'coins', reward_amount: 1000, is_claimed: false },
-    { id: '2', day: 2, reward_type: 'coins', reward_amount: 2000, is_claimed: false },
-    { id: '3', day: 3, reward_type: 'coins', reward_amount: 3000, is_claimed: false },
-  ],
-  dailyMissions: [
-    { id: '1', mission_name: 'Haz 50 clics', mission_type: 'taps', target_value: 50, current_value: 0, reward_type: 'spins', reward_amount: 1, is_completed: false, is_claimed: false },
-    { id: '2', mission_name: 'Mejora 3 cartas', mission_type: 'upgrades', target_value: 3, current_value: 0, reward_type: 'spins', reward_amount: 1, is_completed: false, is_claimed: false },
-  ],
-  achievements: [
-    { id: '1', achievement_name: 'Primer Nivel', achievement_description: 'Alcanza el nivel 5', target_value: 5, current_value: 0, reward_type: 'spins', reward_amount: 2, is_completed: false, is_claimed: false },
-    { id: '2', achievement_name: 'Millonario', achievement_description: 'Acumula 100,000 monedas', target_value: 100000, current_value: 0, reward_type: 'spins', reward_amount: 5, is_completed: false, is_claimed: false },
-  ],
-  shopItems: [],
-  rewardsWheel: { id: '1', spins_used: 0, total_rewards_claimed: 0 }
-};
+import { useGameState } from '@/hooks/useGameState';
+import { useAuth } from '@/hooks/useAuth';
+import AuthPage from './auth/AuthPage';
 
 const BitRushGame = () => {
   const [activeTab, setActiveTab] = useState('home');
-  const [gameState, setGameState] = useState(mockGameState);
+  const { gameState, loading, refreshGameState } = useGameState();
+  const { user, isAuthenticated, signOut } = useAuth();
+  const [authSuccess, setAuthSuccess] = useState(false);
 
-  const refreshGameState = () => {
-    console.log('Refreshing game state (mock mode)');
-    // In mock mode, just log that refresh was called
-  };
+  // Show loading state while game data is being loaded
+  if (loading) {
+    return (
+      <div className="h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-cyan-400">Cargando juego...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar AuthPage si no está autenticado
+  if (!isAuthenticated || !user || !authSuccess) {
+    return <AuthPage onAuthSuccess={() => setAuthSuccess(true)} />;
+  }
 
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
@@ -72,12 +44,22 @@ const BitRushGame = () => {
             <div className="flex flex-col">
               <span className="text-sm">Bit Rush</span>
               <span className="text-xs text-gray-400 font-mono">
-                Modo desarrollo
+                Conectado
               </span>
             </div>
           </div>
-          <div className="text-xs text-gray-400">
-            Mock Mode
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-gray-400">
+              {gameState.stats ? `Nivel ${gameState.stats.level}` : 'Cargando...'}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signOut}
+              className="text-xs border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
+            >
+              Desconectar
+            </Button>
           </div>
         </div>
 

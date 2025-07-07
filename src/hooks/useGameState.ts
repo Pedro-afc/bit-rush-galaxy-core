@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface GameState {
   user: any;
@@ -29,24 +29,78 @@ export const useGameState = () => {
   });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
 
   const loadGameData = async () => {
+    if (!isAuthenticated || !user) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Get demo user data
-      const { data: user } = await supabase
+      // Get user data from public.users table
+      let { data: userData } = await supabase
         .from('users')
         .select('*')
-        .eq('telegram_id', 'demo_user')
+        .eq('id', user.id)
         .single();
 
-      if (!user) {
-        console.error('Demo user not found');
-        return;
+      if (!userData) {
+        // Create user record if it doesn't exist
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            telegram_id: user.user_metadata?.telegram_id || user.email,
+            username: user.user_metadata?.username || `User_${user.id.slice(-8)}`
+          })
+          .select()
+          .single();
+
+        if (userError) {
+          console.error('Error creating user:', userError);
+          return;
+        }
+
+        userData = newUser;
+      }
+
+      // Check if stats exist for the user
+      let { data: stats } = await supabase
+        .from('stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!stats) {
+        // Create initial stats if they don't exist
+        const { data: newStats, error: statsError } = await supabase
+          .from('stats')
+          .insert({
+            user_id: user.id,
+            level: 1,
+            xp: 0,
+            energy: 100,
+            max_energy: 100,
+            coins: 0,
+            mining_rate: 1,
+            ton_balance: 1000.0,
+            spins: 3,
+            stars: 0
+          })
+          .select()
+          .single();
+
+        if (statsError) {
+          console.error('Error creating stats:', statsError);
+          return;
+        }
+
+        stats = newStats;
       }
 
       // Load all game data
       const [
-        { data: stats },
         { data: cards },
         { data: floatingCards },
         { data: dailyRewards },
@@ -55,7 +109,6 @@ export const useGameState = () => {
         { data: shopItems },
         { data: rewardsWheel }
       ] = await Promise.all([
-        supabase.from('stats').select('*').eq('user_id', user.id).single(),
         supabase.from('cards').select('*').eq('user_id', user.id),
         supabase.from('floating_cards').select('*').eq('user_id', user.id).order('card_name, position'),
         supabase.from('daily_rewards').select('*').eq('user_id', user.id).order('day'),
@@ -66,7 +119,7 @@ export const useGameState = () => {
       ]);
 
       setGameState({
-        user,
+        user: userData,
         stats,
         cards: cards || [],
         floatingCards: floatingCards || [],
@@ -187,7 +240,7 @@ export const useGameState = () => {
 
   useEffect(() => {
     loadGameData();
-  }, []);
+  }, [isAuthenticated, user]);
 
   return {
     gameState,

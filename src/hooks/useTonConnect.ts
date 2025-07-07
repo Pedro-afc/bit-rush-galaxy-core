@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { TonConnectUI } from '@tonconnect/ui';
 
-const MANIFEST_URL = '/tonconnect-manifest.json';
+const MANIFEST_URL = 'https://bit-rush-galaxy-core.lovable.app/tonconnect-manifest.json';
 
 export function useTonConnect() {
   const [tonConnectUI, setTonConnectUI] = useState<TonConnectUI | null>(null);

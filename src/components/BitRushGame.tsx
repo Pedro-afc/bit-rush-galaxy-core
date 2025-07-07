@@ -30,24 +30,24 @@ const BitRushGame = () => {
 
   // Mostrar AuthPage si no está autenticado
   if (!isAuthenticated || !user) {
-    return <AuthPage onAuthSuccess={() => {}} />;
+    return <AuthPage />;
   }
 
   return (
     <div className="h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-cyan-500/20">
+        <div className="flex justify-between items-center p-2 sm:p-4 border-b border-cyan-500/20">
           <div className="flex items-center gap-2 text-cyan-400 font-bold">
-            <Wallet className="h-5 w-5" />
+            <Wallet className="h-4 w-4 sm:h-5 sm:w-5" />
             <div className="flex flex-col">
-              <span className="text-sm">Bit Rush</span>
+              <span className="text-xs sm:text-sm">Bit Rush</span>
               <span className="text-xs text-gray-400 font-mono">
                 {user.address ? `${user.address.slice(0, 6)}...${user.address.slice(-4)}` : 'Conectado'}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="text-xs text-gray-400">
               {gameState.stats ? `Nivel ${gameState.stats.level}` : 'Cargando...'}
             </div>
@@ -55,7 +55,7 @@ const BitRushGame = () => {
               variant="outline"
               size="sm"
               onClick={logout}
-              className="text-xs border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
+              className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
             >
               Desconectar
             </Button>
@@ -80,26 +80,26 @@ const BitRushGame = () => {
           </TabsContent>
         </div>
         
-        <TabsList className="grid w-full grid-cols-5 bg-gray-800/50 border-t border-cyan-500/20 rounded-none h-16">
+        <TabsList className="grid w-full grid-cols-5 bg-gray-800/50 border-t border-cyan-500/20 rounded-none h-12 sm:h-16">
           <TabsTrigger value="home" className="flex flex-col items-center gap-1 text-xs data-[state=active]:text-cyan-400">
-            <Home size={20} />
-            <span>Home</span>
+            <Home size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Home</span>
           </TabsTrigger>
           <TabsTrigger value="cards" className="flex flex-col items-center gap-1 text-xs data-[state=active]:text-cyan-400">
-            <CreditCard size={20} />
-            <span>Cartas</span>
+            <CreditCard size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Cartas</span>
           </TabsTrigger>
           <TabsTrigger value="rewards" className="flex flex-col items-center gap-1 text-xs data-[state=active]:text-cyan-400">
-            <Gift size={20} />
-            <span>Rewards</span>
+            <Gift size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Rewards</span>
           </TabsTrigger>
           <TabsTrigger value="shop" className="flex flex-col items-center gap-1 text-xs data-[state=active]:text-cyan-400">
-            <ShoppingBag size={20} />
-            <span>Shop</span>
+            <ShoppingBag size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Shop</span>
           </TabsTrigger>
           <TabsTrigger value="referrals" className="flex flex-col items-center gap-1 text-xs data-[state=active]:text-cyan-400">
-            <Users size={20} />
-            <span>Referidos</span>
+            <Users size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Referidos</span>
           </TabsTrigger>
         </TabsList>
       </Tabs>

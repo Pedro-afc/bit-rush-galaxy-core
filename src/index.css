@@ -103,3 +103,21 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Ocultar botón de TON Connect automático */
+.go2267139606,
+.go3974562317,
+.go3162878564 {
+  display: none !important;
+}
+
+/* Ocultar cualquier elemento con clases que empiecen con "go" (TON Connect) */
+[class*="go"] {
+  display: none !important;
+}
+
+/* Ocultar específicamente el botón de wallet de TON Connect */
+[data-testid="ton-connect-button"],
+[class*="ton-connect"] {
+  display: none !important;
+}

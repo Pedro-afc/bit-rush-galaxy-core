@@ -11,7 +11,8 @@ export function useTonConnect() {
   useEffect(() => {
     const tc = new TonConnectUI({ 
       manifestUrl: MANIFEST_URL,
-      buttonRootId: 'ton-connect-button'
+      // No usar buttonRootId para evitar el botón automático
+      // buttonRootId: 'ton-connect-button'
     });
     
     setTonConnectUI(tc);

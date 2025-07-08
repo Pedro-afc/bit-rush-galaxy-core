@@ -7,8 +7,11 @@ export function useTonConnect() {
   const [tonConnectUI, setTonConnectUI] = useState<TonConnectUI | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    console.log('Initializing TON Connect...');
+    
     const tc = new TonConnectUI({ 
       manifestUrl: MANIFEST_URL,
       // No usar buttonRootId para evitar el botón automático
@@ -21,11 +24,30 @@ export function useTonConnect() {
     const unsubscribe = tc.onStatusChange(walletInfo => {
       console.log('Wallet status changed:', walletInfo);
       if (walletInfo && walletInfo.account) {
+        console.log('Wallet connected:', walletInfo.account.address);
         setAddress(walletInfo.account.address);
       } else {
+        console.log('Wallet disconnected');
         setAddress(null);
       }
     });
+
+    // Check initial connection status
+    const checkInitialStatus = async () => {
+      try {
+        const walletInfo = await tc.wallet;
+        console.log('Initial wallet status:', walletInfo);
+        if (walletInfo && walletInfo.account) {
+          setAddress(walletInfo.account.address);
+        }
+      } catch (error) {
+        console.log('No initial wallet connection');
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    checkInitialStatus();
 
     return () => {
       unsubscribe();
@@ -59,6 +81,7 @@ export function useTonConnect() {
     disconnect,
     address,
     connecting,
-    isConnected: !!address
+    isConnected: !!address,
+    isInitialized
   };
 } 

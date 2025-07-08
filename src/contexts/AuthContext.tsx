@@ -25,7 +25,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { address, isConnected, connect, disconnect } = useTonConnect();
+  const { address, isConnected, connect, disconnect, isInitialized: tonConnectInitialized } = useTonConnect();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verificar autenticación al cargar
   useEffect(() => {
-    if (isInitialized) return;
+    if (isInitialized || !tonConnectInitialized) return;
     
     const checkAuth = () => {
       try {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkAuth();
-  }, [isInitialized]);
+  }, [isInitialized, tonConnectInitialized]);
 
   // Función separada para autenticar con Supabase
   const authenticateWithSupabase = async (address: string) => {
@@ -197,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Solo renderizar cuando esté inicializado
-  if (!isInitialized) {
+  if (!isInitialized || !tonConnectInitialized) {
     return <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="text-cyan-400">Cargando...</div>
     </div>;

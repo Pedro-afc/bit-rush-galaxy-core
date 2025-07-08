@@ -56,6 +56,17 @@ const AuthPage: React.FC = () => {
                 <Wallet className="mr-2 h-4 w-4" />
                 Conectar Wallet TON
               </Button>
+              
+              <Button
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.reload();
+                }}
+                variant="outline"
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                Reiniciar Aplicación
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">

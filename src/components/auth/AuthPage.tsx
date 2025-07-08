@@ -13,6 +13,7 @@ const AuthPage: React.FC = () => {
     logout, 
     connect, 
     disconnect, 
+    resetConnection,
     address, 
     isConnected 
   } = useAuth();
@@ -69,6 +70,18 @@ const AuthPage: React.FC = () => {
                 >
                   <Wallet className="mr-2 h-4 w-4" />
                   Conectar Wallet TON
+                </Button>
+                
+                <Button
+                  onClick={async () => {
+                    console.log('Resetting connection...');
+                    await resetConnection();
+                    console.log('Connection reset completed');
+                  }}
+                  variant="outline"
+                  className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
+                  Reiniciar Conexión
                 </Button>
                 
                 <Button

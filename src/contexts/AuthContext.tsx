@@ -18,6 +18,7 @@ interface AuthContextType {
   logout: () => void;
   connect: () => void;
   disconnect: () => void;
+  resetConnection: () => void;
   address: string | null;
   isConnected: boolean;
 }
@@ -25,7 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { address, isConnected, connect, disconnect, isInitialized: tonConnectInitialized } = useTonConnect();
+  const { address, isConnected, connect, disconnect, resetConnection, isInitialized: tonConnectInitialized } = useTonConnect();
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -211,6 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     connect,
     disconnect,
+    resetConnection,
     address,
     isConnected,
   };

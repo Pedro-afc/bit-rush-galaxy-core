@@ -12,6 +12,10 @@ export function useTonConnect() {
   useEffect(() => {
     console.log('Initializing TON Connect...');
     
+    // Limpiar cualquier estado previo
+    setAddress(null);
+    setConnecting(false);
+    
     const tc = new TonConnectUI({ 
       manifestUrl: MANIFEST_URL,
       // No usar buttonRootId para evitar el botón automático
@@ -67,6 +71,13 @@ export function useTonConnect() {
     console.log('Opening TON Connect modal...');
     
     try {
+      // Limpiar cualquier conexión previa
+      await tonConnectUI.disconnect();
+      console.log('Previous connection cleared');
+      
+      // Esperar un momento antes de abrir el modal
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       await tonConnectUI.openModal();
       console.log('Modal opened successfully');
     } catch (error) {
@@ -82,14 +93,30 @@ export function useTonConnect() {
     try {
       await tonConnectUI.disconnect();
       setAddress(null);
+      console.log('Wallet disconnected successfully');
     } catch (error) {
       console.error('Error disconnecting:', error);
     }
   }, [tonConnectUI]);
 
+  const resetConnection = useCallback(async () => {
+    console.log('Resetting TON Connect connection...');
+    if (tonConnectUI) {
+      try {
+        await tonConnectUI.disconnect();
+        console.log('Connection reset completed');
+      } catch (error) {
+        console.error('Error resetting connection:', error);
+      }
+    }
+    setAddress(null);
+    setConnecting(false);
+  }, [tonConnectUI]);
+
   return {
     connect,
     disconnect,
+    resetConnection,
     address,
     connecting,
     isConnected: !!address,

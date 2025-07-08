@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Authenticating with Supabase for address:', address);
 
       // Generar email y password válidos para Supabase
-      const emailHash = btoa(address).replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+      const emailHash = address.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
       const email = `${emailHash}@bitrush.game`;
       const password = `ton_${emailHash}`; // Password fijo para consistencia
 

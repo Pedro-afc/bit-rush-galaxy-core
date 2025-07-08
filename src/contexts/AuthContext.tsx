@@ -87,9 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password: `ton_${address}_${Date.now()}`
       });
 
+      console.log('Supabase signIn attempt:', { authData, authError });
+
       if (authError) {
         // Si no existe el usuario, crearlo
         if (authError.message.includes('Invalid login credentials')) {
+          console.log('User does not exist, creating new user...');
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: `${address}@ton.wallet`,
             password: `ton_${address}_${Date.now()}`,
@@ -101,11 +104,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           });
 
+          console.log('Supabase signUp attempt:', { signUpData, signUpError });
+
           if (signUpError) {
             console.error('Error creating Supabase user:', signUpError);
             // Continuar con autenticación local si falla Supabase
           } else {
-            console.log('Supabase user created:', signUpData);
+            console.log('Supabase user created successfully:', signUpData);
+            
+            // Intentar iniciar sesión después de crear el usuario
+            const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
+              email: `${address}@ton.wallet`,
+              password: `ton_${address}_${Date.now()}`
+            });
+            
+            console.log('Retry signIn after signUp:', { retryAuthData, retryAuthError });
           }
         } else {
           console.error('Supabase auth error:', authError);
@@ -113,6 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         console.log('Supabase auth successful:', authData);
       }
+
+      // Verificar sesión después de la autenticación
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Session after authentication:', { session, sessionError });
 
       // Guardar usuario en localStorage
       localStorage.setItem('bitrush_user', JSON.stringify(userData));

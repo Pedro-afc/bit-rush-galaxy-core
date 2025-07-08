@@ -81,6 +81,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
       };
 
+      // Crear sesión de Supabase con JWT personalizado
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: `${address}@ton.wallet`,
+        password: `ton_${address}_${Date.now()}`
+      });
+
+      if (authError) {
+        // Si no existe el usuario, crearlo
+        if (authError.message.includes('Invalid login credentials')) {
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: `${address}@ton.wallet`,
+            password: `ton_${address}_${Date.now()}`,
+            options: {
+              data: {
+                wallet_address: address,
+                username: userData.username
+              }
+            }
+          });
+
+          if (signUpError) {
+            console.error('Error creating Supabase user:', signUpError);
+            // Continuar con autenticación local si falla Supabase
+          } else {
+            console.log('Supabase user created:', signUpData);
+          }
+        } else {
+          console.error('Supabase auth error:', authError);
+        }
+      } else {
+        console.log('Supabase auth successful:', authData);
+      }
+
       // Guardar usuario en localStorage
       localStorage.setItem('bitrush_user', JSON.stringify(userData));
       setUser(userData);
@@ -108,6 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('bitrush_user');
       setUser(null);
       disconnect();
+      
+      // Cerrar sesión de Supabase
+      supabase.auth.signOut();
       
       toast({
         title: 'Sesión cerrada',

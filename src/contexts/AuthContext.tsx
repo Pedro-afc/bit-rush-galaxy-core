@@ -49,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
           } else {
             setUser(userData);
+            // Intentar autenticar con Supabase si hay usuario guardado
+            if (userData.address) {
+              console.log('Attempting Supabase authentication for saved user');
+              authenticateWithSupabase(userData.address);
+            }
           }
         }
       } catch (error) {
@@ -61,6 +66,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkAuth();
   }, [isInitialized]);
+
+  // Función separada para autenticar con Supabase
+  const authenticateWithSupabase = async (address: string) => {
+    try {
+      console.log('Authenticating with Supabase for address:', address);
+
+      // Generar email y password consistentes
+      const email = `${address}@ton.wallet`;
+      const password = `ton_${address}`; // Password fijo para consistencia
+
+      // Intentar iniciar sesión primero
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      console.log('Supabase signIn attempt:', { authData, authError });
+
+      if (authError) {
+        // Si no existe el usuario, crearlo
+        if (authError.message.includes('Invalid login credentials')) {
+          console.log('User does not exist, creating new user...');
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                wallet_address: address,
+                username: `User_${address.slice(-8)}`
+              }
+            }
+          });
+
+          console.log('Supabase signUp attempt:', { signUpData, signUpError });
+
+          if (signUpError) {
+            console.error('Error creating Supabase user:', signUpError);
+          } else {
+            console.log('Supabase user created successfully:', signUpData);
+            
+            // Intentar iniciar sesión después de crear el usuario
+            const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+            
+            console.log('Retry signIn after signUp:', { retryAuthData, retryAuthError });
+          }
+        } else {
+          console.error('Supabase auth error:', authError);
+        }
+      } else {
+        console.log('Supabase auth successful:', authData);
+      }
+
+      // Verificar sesión después de la autenticación
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Session after authentication:', { session, sessionError });
+
+    } catch (error) {
+      console.error('Error in Supabase authentication:', error);
+    }
+  };
 
   const authenticate = async (address: string) => {
     if (isLoading) return; // Evitar múltiples llamadas
@@ -81,55 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
       };
 
-      // Crear sesión de Supabase con JWT personalizado
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: `${address}@ton.wallet`,
-        password: `ton_${address}_${Date.now()}`
-      });
-
-      console.log('Supabase signIn attempt:', { authData, authError });
-
-      if (authError) {
-        // Si no existe el usuario, crearlo
-        if (authError.message.includes('Invalid login credentials')) {
-          console.log('User does not exist, creating new user...');
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: `${address}@ton.wallet`,
-            password: `ton_${address}_${Date.now()}`,
-            options: {
-              data: {
-                wallet_address: address,
-                username: userData.username
-              }
-            }
-          });
-
-          console.log('Supabase signUp attempt:', { signUpData, signUpError });
-
-          if (signUpError) {
-            console.error('Error creating Supabase user:', signUpError);
-            // Continuar con autenticación local si falla Supabase
-          } else {
-            console.log('Supabase user created successfully:', signUpData);
-            
-            // Intentar iniciar sesión después de crear el usuario
-            const { data: retryAuthData, error: retryAuthError } = await supabase.auth.signInWithPassword({
-              email: `${address}@ton.wallet`,
-              password: `ton_${address}_${Date.now()}`
-            });
-            
-            console.log('Retry signIn after signUp:', { retryAuthData, retryAuthError });
-          }
-        } else {
-          console.error('Supabase auth error:', authError);
-        }
-      } else {
-        console.log('Supabase auth successful:', authData);
-      }
-
-      // Verificar sesión después de la autenticación
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Session after authentication:', { session, sessionError });
+      // Autenticar con Supabase
+      await authenticateWithSupabase(address);
 
       // Guardar usuario en localStorage
       localStorage.setItem('bitrush_user', JSON.stringify(userData));

@@ -117,7 +117,7 @@ export const useGameState = () => {
 
           if (createStatsError) {
             console.error('Error creating initial stats:', createStatsError);
-            userStats = defaultStats;
+            userStats = defaultStats as any;
           } else {
             userStats = newStats;
           }
@@ -151,7 +151,7 @@ export const useGameState = () => {
             username: user.username,
             referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
           },
-          stats: userStats || defaultStats,
+          stats: userStats || defaultStats as any,
           cards: cards || [],
           floatingCards: floatingCards || [],
           dailyRewards: dailyRewards || [],
@@ -191,7 +191,7 @@ export const useGameState = () => {
             username: user.username,
             referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
           },
-          stats: savedStats,
+          stats: savedStats as any,
           cards: [],
           floatingCards: [],
           dailyRewards: [],
@@ -210,7 +210,7 @@ export const useGameState = () => {
       // En caso de error, usar datos por defecto
       setGameState({
         user: null,
-        stats: defaultStats,
+        stats: defaultStats as any,
         cards: [],
         floatingCards: [],
         dailyRewards: [],
@@ -300,11 +300,28 @@ export const useGameState = () => {
           dailyMissions: updatedMissions
         };
         
-        // Guardar en localStorage
-        localStorage.setItem(`bitrush_game_${user.id}`, JSON.stringify(newState));
-        
         return newState;
       });
+
+      // Verificar si hay sesión de Supabase para guardar en la base de datos
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Actualizar en la base de datos
+        const { error } = await supabase
+          .from('daily_missions')
+          .update({ 
+            current_value: newValue, 
+            is_completed: isCompleted 
+          })
+          .eq('id', mission.id);
+
+        if (error) {
+          console.error('Error updating mission in database:', error);
+        } else {
+          console.log('Mission updated in database:', { missionType, newValue, isCompleted });
+        }
+      }
     } catch (error) {
       console.error('Error updating mission progress:', error);
     }
@@ -331,11 +348,28 @@ export const useGameState = () => {
           achievements: updatedAchievements
         };
         
-        // Guardar en localStorage
-        localStorage.setItem(`bitrush_game_${user.id}`, JSON.stringify(newState));
-        
         return newState;
       });
+
+      // Verificar si hay sesión de Supabase para guardar en la base de datos
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Actualizar en la base de datos
+        const { error } = await supabase
+          .from('achievements')
+          .update({ 
+            current_value: newValue, 
+            is_completed: isCompleted 
+          })
+          .eq('id', achievement.id);
+
+        if (error) {
+          console.error('Error updating achievement in database:', error);
+        } else {
+          console.log('Achievement updated in database:', { achievementName, newValue, isCompleted });
+        }
+      }
     } catch (error) {
       console.error('Error updating achievement progress:', error);
     }

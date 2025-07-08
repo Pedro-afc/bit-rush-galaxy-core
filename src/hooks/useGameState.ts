@@ -53,9 +53,40 @@ export const useGameState = () => {
     try {
       console.log('Loading game data for user:', user.id);
       
-      // Cargar datos reales desde la base de datos
+      // Primero, buscar o crear el usuario en profiles usando telegram_id (wallet address)
+      let { data: userProfile, error: userError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('telegram_id', user.address)
+        .single();
+
+      if (userError && userError.code !== 'PGRST116') {
+        console.error('Error finding user profile:', userError);
+      }
+
+      if (!userProfile) {
+        // Crear nuevo usuario en profiles
+        const { data: newUser, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id, // Usar el UUID que ya generamos
+            telegram_id: user.address,
+            username: user.username,
+            referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating user profile:', createError);
+        } else {
+          userProfile = newUser;
+          console.log('Created new user profile:', userProfile.id);
+        }
+      }
+
+      // Cargar datos reales desde la base de datos usando el ID del usuario
       const [
-        { data: userProfile, error: userError },
         { data: stats, error: statsError },
         { data: cards, error: cardsError },
         { data: floatingCards, error: floatingCardsError },
@@ -65,7 +96,6 @@ export const useGameState = () => {
         { data: shopItems, error: shopItemsError },
         { data: rewardsWheel, error: rewardsWheelError }
       ] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('stats').select('*').eq('user_id', user.id).single(),
         supabase.from('cards').select('*').eq('user_id', user.id),
         supabase.from('floating_cards').select('*').eq('user_id', user.id).order('card_name, position'),
@@ -77,7 +107,6 @@ export const useGameState = () => {
       ]);
 
       // Manejar errores
-      if (userError) console.error('Error loading user profile:', userError);
       if (statsError) console.error('Error loading stats:', statsError);
       if (cardsError) console.error('Error loading cards:', cardsError);
       if (floatingCardsError) console.error('Error loading floating cards:', floatingCardsError);
@@ -95,8 +124,16 @@ export const useGameState = () => {
           .from('stats')
           .insert({
             user_id: user.id,
-            ...defaultStats
-          })
+            level: defaultStats.level,
+            xp: defaultStats.xp,
+            energy: defaultStats.energy,
+            max_energy: defaultStats.max_energy,
+            coins: defaultStats.coins,
+            mining_rate: defaultStats.mining_rate,
+            ton_balance: defaultStats.ton_balance,
+            spins: defaultStats.spins,
+            stars: defaultStats.stars
+          } as any)
           .select()
           .single();
 
@@ -133,7 +170,7 @@ export const useGameState = () => {
         user: userProfile || {
           id: user.id,
           telegram_id: user.address,
-          username: user.username || `User_${user.address.slice(-8)}`,
+          username: user.username,
           referral_code: Math.random().toString(36).substring(2, 8).toUpperCase(),
         },
         stats: userStats || defaultStats,

@@ -106,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (signUpError) {
             console.error('Error creating Supabase user:', signUpError);
+            console.log('Continuing with local authentication only');
           } else {
             console.log('Supabase user created successfully:', signUpData);
             

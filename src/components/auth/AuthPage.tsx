@@ -50,7 +50,10 @@ const AuthPage: React.FC = () => {
                 </p>
               </div>
               <Button
-                onClick={connect}
+                onClick={() => {
+                  console.log('Connect button clicked');
+                  connect();
+                }}
                 className="w-full bg-cyan-600 hover:bg-cyan-500 text-white"
               >
                 <Wallet className="mr-2 h-4 w-4" />

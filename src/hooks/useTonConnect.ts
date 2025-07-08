@@ -55,14 +55,25 @@ export function useTonConnect() {
   }, []);
 
   const connect = useCallback(async () => {
-    if (!tonConnectUI) return;
+    console.log('Connect function called');
+    console.log('tonConnectUI state:', tonConnectUI);
+    
+    if (!tonConnectUI) {
+      console.error('TON Connect UI not initialized');
+      return;
+    }
+    
     setConnecting(true);
+    console.log('Opening TON Connect modal...');
+    
     try {
       await tonConnectUI.openModal();
+      console.log('Modal opened successfully');
     } catch (error) {
       console.error('Error opening modal:', error);
     } finally {
       setConnecting(false);
+      console.log('Connect function completed');
     }
   }, [tonConnectUI]);
 

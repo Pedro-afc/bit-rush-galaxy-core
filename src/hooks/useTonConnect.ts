@@ -71,12 +71,18 @@ export function useTonConnect() {
     console.log('Opening TON Connect modal...');
     
     try {
-      // Limpiar cualquier conexión previa
-      await tonConnectUI.disconnect();
-      console.log('Previous connection cleared');
-      
-      // Esperar un momento antes de abrir el modal
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Verificar si hay una conexión activa antes de desconectar
+      const currentWallet = await tonConnectUI.wallet;
+      if (currentWallet && currentWallet.account) {
+        console.log('Disconnecting existing wallet:', currentWallet.account.address);
+        await tonConnectUI.disconnect();
+        console.log('Previous connection cleared');
+        
+        // Esperar un momento antes de abrir el modal
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        console.log('No existing connection to disconnect');
+      }
       
       await tonConnectUI.openModal();
       console.log('Modal opened successfully');
@@ -103,8 +109,15 @@ export function useTonConnect() {
     console.log('Resetting TON Connect connection...');
     if (tonConnectUI) {
       try {
-        await tonConnectUI.disconnect();
-        console.log('Connection reset completed');
+        // Verificar si hay una conexión activa antes de desconectar
+        const currentWallet = await tonConnectUI.wallet;
+        if (currentWallet && currentWallet.account) {
+          console.log('Disconnecting wallet:', currentWallet.account.address);
+          await tonConnectUI.disconnect();
+          console.log('Connection reset completed');
+        } else {
+          console.log('No active connection to reset');
+        }
       } catch (error) {
         console.error('Error resetting connection:', error);
       }

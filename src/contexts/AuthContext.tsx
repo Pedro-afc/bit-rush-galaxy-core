@@ -72,9 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('Authenticating with Supabase for address:', address);
 
-      // Generar email y password consistentes
-      const email = `${address}@ton.wallet`;
-      const password = `ton_${address}`; // Password fijo para consistencia
+      // Generar email y password válidos para Supabase
+      const emailHash = btoa(address).replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+      const email = `${emailHash}@ton.wallet`;
+      const password = `ton_${emailHash}`; // Password fijo para consistencia
+
+      console.log('Generated credentials:', { email, password });
 
       // Intentar iniciar sesión primero
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
